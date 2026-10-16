@@ -1,0 +1,17 @@
+# R session files
+.Rhistory
+.RData
+.Rproj.user/
+
+# Secrets: never commit API keys
+.Renviron
+
+# Data: re-downloadable, not versioned (keep the empty folders)
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# OS / editor
+.DS_Store
+Thumbs.db
