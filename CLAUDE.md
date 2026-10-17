@@ -162,6 +162,17 @@ implied vol same day).
 - Metrics: QLIKE on variance (primary), RMSE on log vol, var_ratio (mean
   forecast / mean realised variance), qlike_vs_har.
 - Output: `data/processed/predictions.rds` (one row per asset × model × day).
+- Models have a `pooled` flag: pooled models are fitted once per year on
+  all assets (asset name as a factor feature), others once per asset.
+- Feature sets: BASE (own returns: har_*, neg_*, ewma) and FULL (BASE +
+  11 external columns). 2×2 design = {Lasso, RF} × {BASE, FULL}.
+- Lasso (glmnet, per asset): lambda chosen inside each training window by
+  purged blocked CV (5 contiguous folds, 21 rows purged on each side of the
+  validation fold), 1-SE rule. resid_var = in-sample residual variance.
+- RF (ranger, 500 trees, seed 42, default mtry): per-asset vs pooled and
+  min.node.size ∈ {5, 50, 200} chosen on validation years 2015–2016 only
+  (lowest pooled QLIKE, full features), then frozen for 2017+.
+  resid_var = out-of-bag residual variance.
 
 ## Known limitations
 

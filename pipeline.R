@@ -18,7 +18,19 @@ saveRDS(features, FEATURES_PATH)
 print(summarise_features(features))
 print(feature_start_dates(features))
 
-# Step 3 — walk-forward out-of-sample forecasts (yearly refit from 2017)
-predictions <- walk_forward(features, BASELINE_MODELS)
+# Step 3 — choose the random forest settings on 2015-2016 only,
+# before looking at any 2017+ result
+validation      <- walk_forward(features, c(list(model_har), rf_candidate_models()),
+                                test_years = VALIDATION_YEARS)
+validation_eval <- evaluate(validation)
+print(validation_eval[validation_eval$asset == "all", ], digits = 3)
+rf_config <- select_rf_config(validation_eval)
+message("Forest settings chosen: ", rf_config$name)
+
+# Step 4 — walk-forward out-of-sample forecasts, 2017+ (yearly refit)
+all_models  <- c(BASELINE_MODELS, ml_models(rf_config$pooled, rf_config$min_node_size))
+predictions <- walk_forward(features, all_models)
 saveRDS(predictions, PREDICTIONS_PATH)
-print(evaluate(predictions), digits = 3)
+evaluation  <- evaluate(predictions)
+print(evaluation, digits = 3)
+print(design_2x2(evaluation), digits = 3)

@@ -2,6 +2,56 @@
 
 Newest session first. Each entry: done / next / decisions / open issues.
 
+## S5 — 2026-10-17 — Lasso, random forest, 2×2 design
+
+**Done**
+- `R/03_models.R`: feature sets BASE / FULL; Lasso with purged blocked CV
+  (1-SE rule); random forest per asset or pooled; candidate grid.
+- `R/04_walkforward.R`: engine supports pooled models; `select_rf_config()`
+  on 2015–2016; `design_2x2()` summary.
+- `tests/test_ml.R`: blocks, purge, sparse recovery, non-linear step,
+  pooled asset effect, no-peek with Lasso + pooled RF. 50 tests pass in the
+  cloud workspace.
+- Validation 2015–2016 (pooled QLIKE vs HAR): rf_asset_node200 1.08 (best
+  forest), rf_pooled_node200 1.15, node 50: 1.15/1.19, node 5: 1.26/1.26.
+  HAR beat every forest. Bigger leaves always better (weak, noisy signal);
+  per-asset beat pooled, contrary to our prior. Chosen: per asset, node 200.
+- Out-of-sample 2017-01 → 2026-09 (QLIKE / HAR, pooled over 5 assets):
+
+  | 2×2 | own returns only | + external data |
+  |---|---|---|
+  | Lasso | 1.13 | 1.10 |
+  | Random forest | 1.08 | 1.11 |
+
+  HAR 0.253 stays best pooled (EWMA 1.12, naive 1.26).
+  By asset, ML beats HAR in two places: **oil, lasso_full 0.819** (-18%;
+  lasso_base 0.965) and **copper, rf_full 0.922** (-8%). Gold: EWMA 0.992,
+  rf_base 0.996 (tie). Corn and natgas: HAR best; external features hurt
+  (corn lasso_full 1.28, natgas lasso_full 1.31, rf_full 1.22 / 1.26).
+
+**Reading (to confirm)**
+- Primary, pre-specified comparison: no ML model beats HAR on pooled QLIKE.
+- Forests cannot extrapolate beyond the training range (forecast = average
+  of training targets in a leaf): in oil 2020 they cap the forecast, while
+  a linear model can go higher. Consistent with RF losing on oil and Lasso
+  winning there; var_ratio of forests ~0.8.
+- Lasso's 1-SE shrinkage pulls forecasts towards the mean → variance level
+  too low (var_ratio_raw 0.62–0.71 on natgas/gold) → penalised by QLIKE.
+- FULL gives every external column to every asset (e.g. HDD to gold):
+  irrelevant columns add noise, especially for forests (mtry = 4 of 18).
+- Hypothesis for oil: OVX (implied vol on USO options) carries the gain.
+  Check the Lasso coefficients.
+
+**Next (S6)**
+- Diebold-Mariano (HAC) of each model vs HAR, by asset and pooled;
+  Mincer-Zarnowitz; per-year breakdown (2020, 2022).
+- Asset-specific feature blocks (planned since S0: OVX + EIA crude for oil,
+  GVZ for gold, gas storage + HDD for natgas...). Reported as a planned
+  extension, the pooled 2×2 above stays the primary result.
+- Sensitivity, clearly labelled post hoc: Lasso lambda.min vs 1-SE, Duan
+  smearing for the Jensen correction.
+- First vol-targeting backtest.
+
 ## S4 — 2026-10-17 — Walk-forward engine and baselines
 
 **Done**
