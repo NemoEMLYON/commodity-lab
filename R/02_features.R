@@ -18,6 +18,7 @@ ASSETS       <- c("gold", "oil", "copper", "natgas", "corn")
 HORIZON      <- 21      # forecast horizon, trading days
 TRADING_DAYS <- 252     # annualisation factor
 VOL_FLOOR    <- 0.01    # 1% annualised: lower bound before taking logs
+EWMA_LAMBDA  <- 0.94    # RiskMetrics decay factor for daily data
 
 # Publication lag after the end of the measured week (a Friday).
 EIA_PUBLICATION_LAG_DAYS <- c(crude = 5,   # Wednesday
@@ -85,6 +86,25 @@ past_years_mean <- function(dates, values, lag_days, max_years, min_years) {
 }
 
 
+# EWMA variance (RiskMetrics): v[t] = lambda * v[t-1] + (1 - lambda) * r[t]^2.
+# Starts with the mean of the first `init_n` squared returns. Uses r up to t.
+ewma_variance <- function(ret_sq, lambda = EWMA_LAMBDA, init_n = 22) {
+  n     <- length(ret_sq)
+  v     <- rep(NA_real_, n)
+  first <- which(!is.na(ret_sq))[1]        # ret_sq[1] is NA (no previous price)
+  start <- first + init_n - 1
+  if (is.na(start) || start > n) return(v)
+
+  v[start] <- mean(ret_sq[first:start])
+  if (start < n) {
+    for (t in (start + 1):n) {
+      v[t] <- lambda * v[t - 1] + (1 - lambda) * ret_sq[t]
+    }
+  }
+  v
+}
+
+
 # ---- Prices, target and HAR features ----------------------------------------
 
 # Adjusted close per trading day. On zero-volume days there was no trade, so
@@ -120,6 +140,9 @@ build_asset <- function(prices) {
   df$neg_d <- roll_mean(neg, 1)
   df$neg_w <- roll_mean(neg, 5)
   df$neg_m <- roll_mean(neg, 22)
+
+  # EWMA vol: the practitioners' benchmark (used as a forecast, not fitted).
+  df$ewma <- log_vol(ewma_variance(ret_sq))
 
   df
 }

@@ -2,6 +2,45 @@
 
 Newest session first. Each entry: done / next / decisions / open issues.
 
+## S4 — 2026-10-17 — Walk-forward engine and baselines
+
+**Done**
+- `ewma` column added to the modelling table (RiskMetrics recursion).
+- `R/03_models.R`: common fit/predict interface; naive, EWMA, HAR-OLS.
+- `R/04_walkforward.R`: yearly expanding-window walk-forward 2017–2026 with
+  21-day embargo, Jensen correction, QLIKE / RMSE / var_ratio evaluation.
+- `tests/test_walkforward.R`: cutoff, QLIKE, Jensen (simulation), HAR
+  coefficient recovery, no-peek test on the engine. 41 tests pass in the
+  cloud workspace; removing the embargo makes the no-peek test fail.
+- First real run (41/41 tests pass on the student's PC). Out-of-sample
+  2017-01 → 2026-09, 2439 days per asset:
+
+  | Pooled (5 assets) | QLIKE | vs HAR | RMSE log | var_ratio | var_ratio_raw |
+  |---|---|---|---|---|---|
+  | HAR   | 0.253 | 1.000 | 0.321 | 0.880 | 0.740 |
+  | EWMA  | 0.283 | 1.120 | 0.340 | 1.000 | 1.000 |
+  | naive | 0.319 | 1.261 | 0.355 | 1.000 | 1.000 |
+
+  HAR is best on oil (EWMA +24%), copper, corn and natgas; on gold EWMA is
+  marginally better (0.992 × HAR), essentially a tie. Oil has the highest
+  loss (2020). Jensen correction moves HAR's variance level from 74% to 88%
+  of realised: still ~12% too low (only corn ≈ 1.01).
+
+**Decisions**
+- Baseline to beat for the ML models: HAR (QLIKE 0.253 pooled).
+
+**Next (S5)**
+- Lasso (glmnet) and random forest (ranger) in the same engine, 2×2 design,
+  panel vs per-asset forest chosen on 2015–2016.
+
+**Open issues**
+- HAR still under-predicts the variance level after the normal-theory
+  correction (in-sample residual variance < out-of-sample error variance,
+  fat-tailed residuals). Candidate fix to test in S5/S6: Duan (1983)
+  smearing estimator, mean(exp(2 × residual)), which does not assume
+  normality. Compare QLIKE and var_ratio.
+- Per-year breakdown (2020, 2022) for the oral.
+
 ## S3 — 2026-10-17 — Modelling table and anti-leakage tests
 
 **Done**

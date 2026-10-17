@@ -130,6 +130,7 @@ One row per (asset, trading day t). Columns:
 | target | log annualised realised vol, returns t+1..t+21 | (future: the thing to predict) |
 | har_d / har_w / har_m | log annualised realised vol over the last 1 / 5 / 22 days | returns up to t |
 | neg_d / neg_w / neg_m | mean of min(return, 0) over 1 / 5 / 22 days | returns up to t |
+| ewma | log annualised EWMA vol (λ = 0.94, RiskMetrics) | returns up to t |
 | log_vix / log_ovx / log_gvz | log(index / 100) | FRED value of day t-1 (next-day rule) |
 | usd_ret_22 / usd_vol_22 | UUP 22-day log return / log realised vol | same exchange close |
 | crude_dev / gas_dev | stocks / average of same week in past years (max 5, min 3) - 1 | publication day + 1 trading day |
@@ -145,6 +146,22 @@ table rebuilt from only the data published at a cutoff date must match the
 full table on every day up to that cutoff. Checked to fail on 4 injected
 leaks (HAR 1 day ahead, EIA at week end, GPR rolling window ahead,
 implied vol same day).
+
+## Models and evaluation (03_models.R, 04_walkforward.R)
+
+- Common interface: each model is `list(name, fit(train), predict(fitted, test))`;
+  `fit` returns `resid_var` (in-sample variance of log-vol residuals, 0 if
+  not fitted). Baselines: naive (= har_m), EWMA λ = 0.94 (column `ewma`),
+  HAR-OLS on har_d/har_w/har_m.
+- Walk-forward: test years 2017–2026, one refit per year and asset,
+  expanding window. Training rows = targets already known at the first test
+  day s: position(t) <= position(s) - 21 (21-day embargo).
+- Variance forecast = exp(2 × pred_log_vol + 2 × resid_var) (Jensen
+  correction, lognormal assumption). `pred_var_raw` keeps the uncorrected
+  value for comparison.
+- Metrics: QLIKE on variance (primary), RMSE on log vol, var_ratio (mean
+  forecast / mean realised variance), qlike_vs_har.
+- Output: `data/processed/predictions.rds` (one row per asset × model × day).
 
 ## Known limitations
 

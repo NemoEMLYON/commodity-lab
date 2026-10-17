@@ -43,6 +43,13 @@ test_that("zero-volume closes are replaced by the previous close", {
 })
 
 
+test_that("ewma_variance follows the RiskMetrics recursion", {
+  ret_sq <- c(NA, 1, 3, 2, 4)
+  v <- ewma_variance(ret_sq, lambda = 0.5, init_n = 2)
+  expect_equal(v, c(NA, NA, 2, 0.5 * 2 + 0.5 * 2, 0.5 * 2 + 0.5 * 4))
+})
+
+
 # ---- Target and HAR: perturbation tests -------------------------------------
 # Change one daily return and check which rows of the output move.
 
@@ -70,7 +77,7 @@ test_that("HAR features at t use returns up to t only", {
   dates <- fake_calendar("2020-01-01", "2020-06-30")
   r     <- rnorm(length(dates), 0, 0.01)
   t     <- 50
-  cols  <- c("har_d", "har_w", "har_m", "neg_d", "neg_w", "neg_m")
+  cols  <- c("har_d", "har_w", "har_m", "neg_d", "neg_w", "neg_m", "ewma")
   base  <- build_asset(fake_prices(dates, r))[t, cols]
 
   har_after <- function(pos) build_asset(fake_prices(dates, perturb(r, pos)))[t, cols]
