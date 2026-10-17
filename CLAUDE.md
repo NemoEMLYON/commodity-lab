@@ -204,6 +204,18 @@ implied vol same day).
   primary), breach_pct (% of days rolling vol > 15%), max drawdown,
   turnover per year, annual return, Sharpe. `data/processed/backtest.rds`.
 
+## Robustness (07_portfolio.R, robustness.R)
+
+- `robustness.R` runs after `pipeline.R` and reads its saved outputs.
+- Sensitivity of the per-asset backtest: costs 0 / 20 bp, daily / monthly
+  rebalancing, band 0 / 20% (`backtest_sensitivity()`).
+- Portfolio: inverse-vol weights from the 5 forecasts, scaled to 10% with
+  the trailing 252-day correlation of daily returns, gross exposure ≤ 2;
+  same trading rules; references equal_weight (20% each) and oracle.
+- Horizon extension: HORIZON = 5 (target, embargo, CV purge) and
+  HAC_LAG = 5, baselines + lasso_b2_iv + rf_b2_iv (forest settings reused);
+  then both restored to 21. Output `data/processed/robustness.rds`.
+
 ## Known limitations
 
 - USO changed its roll strategy and did a 1-for-8 reverse split in 2020

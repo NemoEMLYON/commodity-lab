@@ -2,6 +2,38 @@
 
 Newest session first. Each entry: done / next / decisions / open issues.
 
+## S8 — 2026-10-17 — Robustness: sensitivity, portfolio, 5-day horizon (in progress)
+
+**Done**
+- `R/06_backtest.R`: `backtest_sensitivity()` and `sensitivity_wide()`.
+- `R/07_portfolio.R`: vol-targeted inverse-vol portfolio (weights,
+  trailing correlation, multi-asset simulator, summary).
+- `robustness.R`: sensitivity grid, portfolio, full rerun at HORIZON = 5.
+- `tests/test_portfolio.R`: equal risk + target, cap, single-asset
+  equivalence, drift, no look-ahead in the correlation. 103 tests pass in
+  the cloud workspace; robustness.R dry-run on synthetic data.
+
+**Plan after S8 (discussed)**
+- Site can start right after S8 (results frozen); scratch Lasso / forest
+  can be interleaved since they must reproduce glmnet / ranger. Student to
+  choose the order.
+- Creative direction received (`Creative Direction/*.docx`, read in full):
+  dark warm cinematic base, champagne gold / copper accents, one material
+  identity per commodity, editorial display type + legible data type,
+  restrained Liquid Glass, purposeful motion, no scroll hijacking, data
+  first. Student's reference for ambition: landonorris.com.
+- Font "One Slice" rendered: uppercase-only condensed display with sliced
+  wedge serifs → oversized headlines only; data/body in Manrope + IBM Plex
+  Mono (brief's suggestions).
+- Architecture to re-decide with the student: given the motion ambition,
+  a static front-end (HTML/CSS/JS, GSAP, optional Three.js) fed by JSON
+  exported from R, with the simulator ported to JS and validated against
+  R outputs, now looks better than Shiny (instant load, no cold start,
+  free hosting, full control of motion).
+
+**Open issues**
+- First run on real data not done yet.
+
 ## S7 — 2026-10-17 — Vol-targeting backtest
 
 **Done**

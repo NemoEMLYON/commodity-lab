@@ -135,3 +135,37 @@ backtest_summary <- function(backtest, target = TARGET_VOL) {
   rownames(out) <- NULL
   out
 }
+
+
+# ---- Sensitivity ------------------------------------------------------------
+
+# Re-run the per-asset backtest under other trading assumptions and keep the
+# average over assets. One row per (setting, strategy).
+BACKTEST_SETTINGS <- list(
+  base    = list(),
+  cost_0  = list(cost_bp = 0),
+  cost_20 = list(cost_bp = 20),
+  daily   = list(rebalance_every = 1),
+  monthly = list(rebalance_every = 21),
+  no_band = list(band = 0),
+  band_20 = list(band = 0.20)
+)
+
+backtest_sensitivity <- function(predictions, features, settings = BACKTEST_SETTINGS) {
+  rows <- lapply(names(settings), function(name) {
+    bt  <- do.call(run_backtest, c(list(predictions, features), settings[[name]]))
+    avg <- backtest_summary(bt)
+    avg <- avg[avg$asset == "all", c("strategy", "risk_rmse", "ann_ret", "turnover")]
+    data.frame(setting = name, avg)
+  })
+  do.call(rbind, rows)
+}
+
+# Wide view: one row per strategy, one column per setting.
+sensitivity_wide <- function(sensitivity, value = "risk_rmse") {
+  out <- reshape(sensitivity[, c("setting", "strategy", value)],
+                 idvar = "strategy", timevar = "setting", direction = "wide")
+  names(out) <- sub(paste0(value, "."), "", names(out), fixed = TRUE)
+  rownames(out) <- NULL
+  out
+}
