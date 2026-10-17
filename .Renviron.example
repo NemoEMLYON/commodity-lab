@@ -1,0 +1,5 @@
+# Copy this file to .Renviron (same folder) and replace the placeholders.
+# .Renviron is ignored by Git: real keys must never be committed.
+# R reads .Renviron at startup: restart the R terminal after editing.
+EIA_API_KEY=paste_your_eia_key_here
+FRED_API_KEY=paste_your_fred_key_here

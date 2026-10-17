@@ -35,11 +35,15 @@ Course: "Machine Learning with R", emlyon. Mid-project oral: 2026-10-31.
 - Run everything from the project root (VS Code: File > Open Folder).
   All paths are relative to the root.
 - `R/` files only define functions and constants; `pipeline.R` calls them.
-- `data/raw/`: data exactly as received from the source, never edited.
-  Ignored by Git (re-downloadable, third-party terms).
+- Each source has `fetch_*()` (network) and `parse_*()` (pure, unit-tested
+  in `tests/`). Run tests with `testthat::test_dir("tests")`.
+- `data/raw/`: values exactly as received, only converted to xts indexed by
+  the source's own date. Never edited. Ignored by Git (re-downloadable,
+  third-party terms).
 - `data/processed/`: derived data. Ignored by Git for now.
 - The app never calls the network: it reads precomputed `.rds`/JSON files.
-- Secrets (EIA API key) live in `.Renviron`, ignored by Git.
+- Secrets (`EIA_API_KEY`, `FRED_API_KEY`) live in `.Renviron`, ignored by
+  Git; `.Renviron.example` documents the variables.
 - Packages are pinned with renv (`renv.lock`). Few dependencies; every new
   package is justified in one line below.
 
@@ -64,10 +68,10 @@ Course: "Machine Learning with R", emlyon. Mid-project oral: 2026-10-31.
 |-------|--------|--------|-------------------|
 | Prices | GLD, USO, CPER, UNG, CORN (OHLC, adjusted) | Yahoo via quantmod | Known at close t |
 | Dollar | UUP ETF | Yahoo via quantmod | Known at close t |
-| Implied vol | VIXCLS, OVXCLS, GVZCLS | FRED via quantmod | Lag 1 business day (default rule) |
-| Geopolitics | Daily GPR index | matteoiacoviello.com | Lag 1 business day; revised series (limitation) |
-| Fundamentals | EIA crude stocks (Wed), gas storage (Thu) | EIA API v2 | Known from publication date + 1 business day, never from measurement date |
-| Weather | HDD anomaly, ~10 US cities | Open-Meteo archive | Lag 1 business day; reanalysis (limitation) |
+| Implied vol | VIXCLS, OVXCLS, GVZCLS | FRED via quantmod | Lag 1 business day (default rule); FRED posts with ~1 day delay |
+| Geopolitics | Daily GPR index (GPRD, GPRD_ACT, GPRD_THREAT) | matteoiacoviello.com, CC BY | The daily file is updated **weekly, on Mondays** (next business day if holiday). Value of day d usable from the Wednesday after the first Monday strictly after d. Revised series (limitation) |
+| Fundamentals | EIA crude stocks WCESTUS1 (week ending Fri, published Wed), gas storage NW2_EPG0_SWO_R48_BCF (week ending Fri, published Thu) | EIA API v2 | `period` = end of measured week. Usable from publication day + 1 business day (Thu for crude, Fri for gas); the buffer also absorbs one-day holiday delays |
+| Weather | Daily mean temperature (°F), 10 cities, from 2006 | Open-Meteo archive (ERA5 reanalysis), CC BY 4.0, free plan = non-commercial | Lag 1 business day; reanalysis, not real-time observations (limitation). Site must credit "Weather data by Open-Meteo.com" |
 
 ## Decisions (with reason)
 
@@ -97,6 +101,25 @@ Course: "Machine Learning with R", emlyon. Mid-project oral: 2026-10-31.
    a public GitHub repo. Check free-plan usage credits before deploying.
 10. **Data snapshot**: raw data is cached on first download and not refreshed
     unless `refresh = TRUE`, so results are reproducible.
+11. **HDD cities**: 10 Northeast/Midwest metros (+ Atlanta), equal weights
+    (simplification, documented). Base 65°F. Anomaly vs the same calendar
+    day in previous years only (no look-ahead).
+12. **Site typeface**: "One Slice" (Chequered Ink), file in `font/`. Display
+    font only (98 glyphs, no accents): headings, never body text or numbers.
+    Licence: free for personal, non-profit use; commercial use needs a paid
+    licence. `font/` is ignored by Git — decide before deployment whether
+    the public repo/site may serve it (buy a licence or confirm with the
+    designer).
+13. **Zero-volume days**: when Volume == 0 there was no trade, so Yahoo's
+    "close" is not a traded price. In 02_features.R the close of such days
+    is replaced by the previous close (raw data untouched). This removes the
+    bad print of CPER on 2014-12-04 (13.05 between 19.52 and 19.56, volume 0,
+    i.e. -40% then +40%). Only CPER has zero-volume days (329, mostly
+    2012–2016, none after 2018).
+14. **CPER kept in the universe**, with a documented limitation: stale
+    prices in 2012–2016 bias its realised vol downward in the early training
+    years; the out-of-sample period (2017+) is mostly clean. Robustness check
+    planned: results without CPER, and CPER trained from 2016 only.
 
 ## Known limitations
 
@@ -105,6 +128,10 @@ Course: "Machine Learning with R", emlyon. Mid-project oral: 2026-10-31.
 - GPR, EIA gas storage and Open-Meteo reanalysis are revised after the fact;
   no real-time vintages available.
 - ~120 independent 21-day forecasts per asset out of sample → low test power.
+- CPER illiquid in its first years: 595 days with High == Low, 329 days
+  with zero volume (see decisions 13–14).
+- EIA weekly gas storage (Lower 48) starts 2010-01-01, so a 5-year average
+  is only available from 2015 (choice of gas feature open, see log).
 
 ## Current status
 

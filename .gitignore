@@ -12,6 +12,12 @@ data/raw/*
 data/processed/*
 !data/processed/.gitkeep
 
+# Personal scratch file for trying code
+scratch.R
+
+# Font licensed for personal, non-commercial use: do not redistribute
+font/
+
 # OS / editor
 .DS_Store
 Thumbs.db
