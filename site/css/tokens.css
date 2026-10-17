@@ -1,0 +1,61 @@
+/* Liquid Commodities Lab — design tokens.
+   Layout: oversized left-aligned display type over a full-bleed field of the
+   real volatility traces, one liquid-metal object; then a rail of five
+   material cards and one large chart that follows the selection.
+   Single dark look by design (creative brief: dark, warm, cinematic). */
+
+@font-face {
+  font-family: "One Slice";
+  src: url("../assets/fonts/OneSlice.otf") format("opentype");
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark;
+
+  /* Base: warm obsidian, never neutral grey */
+  --obsidian: #130f0c;
+  --char: #1d1814;
+  --smoke: #2e2620;
+  --bone: #efe7da;
+  --ash: #a99f91;
+
+  /* Signature accents */
+  --champagne: #d9bf8a;
+  --amber: #e6a94a;
+
+  /* One material identity per commodity (lines, swatches, active states) */
+  --m-gold: #e3bd69;
+  --m-oil: #6cbcb2;
+  --m-copper: #d07c4c;
+  --m-gas: #a7bccd;
+  --m-corn: #a5b366;
+  --material: var(--m-gold);          /* follows the selected commodity */
+
+  /* Type: display (headlines only), text, data */
+  --font-display: "One Slice", "Oswald", "Arial Narrow", Impact, sans-serif;
+  --font-body: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
+
+  /* Type scale (ratio ~1.25, display fluid) */
+  --step--1: 0.8125rem;
+  --step-0: 1rem;
+  --step-1: 1.25rem;
+  --step-2: 1.625rem;
+  --step-3: clamp(2.25rem, 5vw, 3.5rem);
+  --step-hero: clamp(4.25rem, 15vw, 14rem);
+
+  /* Space */
+  --s-1: 0.5rem;
+  --s-2: 1rem;
+  --s-3: 1.5rem;
+  --s-4: 2.5rem;
+  --s-5: 4rem;
+  --s-6: 7rem;
+
+  --radius-s: 6px;
+  --radius-l: 20px;
+  --line: color-mix(in srgb, var(--bone) 12%, transparent);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --page-max: 1320px;
+}

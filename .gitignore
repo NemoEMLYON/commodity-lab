@@ -17,6 +17,7 @@ scratch.R
 
 # Font licensed for personal, non-commercial use: do not redistribute
 font/
+site/assets/fonts/
 
 # OS / editor
 .DS_Store

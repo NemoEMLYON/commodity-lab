@@ -216,6 +216,27 @@ implied vol same day).
   HAC_LAG = 5, baselines + lasso_b2_iv + rf_b2_iv (forest settings reused);
   then both restored to 21. Output `data/processed/robustness.rds`.
 
+## Website (decided in S8/S9)
+
+- **Static site** in `site/` (HTML, CSS, JS ES modules, no build step),
+  chosen over Shiny for the visual ambition (reference: landonorris.com):
+  full control of motion, instant load, free hosting (GitHub Pages).
+- Data flow: R computes everything; `export_site.R` (after pipeline.R and
+  robustness.R) writes `site/data/*.json` via `R/08_export.R`. The site
+  only displays them. Exception: the portfolio simulator, ported to JS and
+  validated against R outputs. `site/data/` is versioned (derived data,
+  needed by GitHub Pages).
+- Libraries (CDN, pinned versions): GSAP 3.13 (+ ScrollTrigger, SplitText)
+  for motion, D3 v7 for charts. Native scroll, no scroll hijacking.
+  Hero object: lightweight WebGL shader (liquid metal), CSS fallback,
+  static under prefers-reduced-motion.
+- Design brief: `Creative Direction/*.docx` (dark warm base, champagne
+  gold / copper accents, one material per commodity, purposeful motion,
+  data first). Typefaces: One Slice (display, uppercase only, headlines),
+  Manrope (text), IBM Plex Mono (numbers, tickers, axes).
+- Local preview needs a local server (fetch of JSON fails on file://):
+  VS Code "Live Server" extension, or `python -m http.server` in `site/`.
+
 ## Known limitations
 
 - USO changed its roll strategy and did a 1-for-8 reverse split in 2020

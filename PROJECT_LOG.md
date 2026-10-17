@@ -2,7 +2,34 @@
 
 Newest session first. Each entry: done / next / decisions / open issues.
 
-## S8 — 2026-10-17 — Robustness: sensitivity, portfolio, 5-day horizon (in progress)
+## S9 — 2026-10-17 — Site foundations: data export, design system, hero (in progress)
+
+**Decisions**
+- Static site (student: "the architecture best suited to my visual
+  ambition"), site before the scratch Lasso / forest.
+
+**Done**
+- `R/08_export.R` + `export_site.R`: meta, asset snapshot, weekly vol
+  history, weekly out-of-sample forecasts (har, ewma, lasso_b2_iv,
+  rf_b2_iv) vs realised, results tables, backtest/portfolio/robustness
+  tables → `site/data/*.json`. `tests/test_export.R`; 109 tests pass in the
+  cloud workspace.
+
+- Export run on the student's PC (6 files, ~240 KB).
+- First site prototype in `site/`: tokens.css (palette, type scale,
+  spacing, material colours), main.css, hero.js (real vol traces on a log
+  scale + WebGL liquid-metal object following the cursor, tinted by the
+  selected commodity; GSAP entry sequence; reduced-motion and no-WebGL
+  fallbacks), main.js (five material cards from assets.json, D3 log-scale
+  vol chart with median, events, endpoint, hover). Published as a private
+  preview page; checked at 1440 px and 390 px (no overflow, no console
+  error). Font copied to site/assets/fonts (ignored by Git).
+
+**Next**
+- Student feedback on the prototype (hero object, type scale, cards).
+- Then: scroll narrative (problem, data, model, results) and dashboard.
+
+## S8 — 2026-10-17 — Robustness: sensitivity, portfolio, 5-day horizon
 
 **Done**
 - `R/06_backtest.R`: `backtest_sensitivity()` and `sensitivity_wide()`.
@@ -31,8 +58,38 @@ Newest session first. Each entry: done / next / decisions / open issues.
   R outputs, now looks better than Shiny (instant load, no cold start,
   free hosting, full control of motion).
 
-**Open issues**
-- First run on real data not done yet.
+- Real run of robustness.R (average over the 5 assets unless stated):
+  - Sensitivity (risk_rmse): ranking oracle < ewma < naive < har < rf_b2_iv
+    < lasso_b2_iv in 6 of 7 settings. Costs 0/20 bp change nothing in
+    tracking (returns -0.2 to -0.5 pt/yr). Daily rebalancing helps every
+    model (har 0.0193, ewma 0.0140). **Monthly rebalancing (= 21-day
+    forecast horizon): har 0.0252 vs ewma 0.0245**, gap 0.0007 vs 0.0041
+    weekly (-84%); har beats naive (0.0258).
+  - Inverse-vol portfolio: risk_rmse ewma 0.0179, har 0.0192, naive
+    0.0198, rf/lasso 0.0207, oracle 0.0094, equal weight 0.0905.
+    Sharpe 0.66–0.77 vs 0.35 equal weight; max_dd ~-19% vs -39%;
+    breaches 2.4% vs 63%.
+  - Horizon 5 days, QLIKE vs HAR: rf_b2_iv 1.01, ewma 1.02 (vs 1.12 at
+    21 days), lasso_b2_iv 1.04 (IV is a 30-day measure), naive 1.10.
+    Risk tracking weekly: har 0.0211 → 0.0185, rf 0.0251 → 0.0212,
+    lasso 0.0266 → 0.0250; ewma/naive unchanged (same forecast);
+    HAR–EWMA gap 0.0041 → 0.0016 (-61%). Portfolio at 5 days: ewma 0.0179,
+    rf 0.0181, har 0.0182 (tie).
+
+**Conclusions of S8 (results frozen)**
+1. The economic results are robust to costs and band; vol targeting is
+   what creates the value, single asset and portfolio (Sharpe doubles
+   in the portfolio).
+2. The horizon explanation is largely confirmed: aligning forecast and
+   decision horizons (5-day forecasts for weekly trading, or monthly
+   trading for 21-day forecasts) removes 61–84% of HAR's gap to EWMA.
+3. Remaining gap: HAR still under-predicts the variance level (var_ratio
+   0.91 at 5 days, 0.88 at 21) and runs slightly hot; a better
+   level correction (Duan smearing) is the natural next check (post hoc).
+
+**Next**
+- Student to decide: architecture of the site (static front-end vs
+  Shiny) and order (site first or scratch Lasso / forest first).
 
 ## S7 — 2026-10-17 — Vol-targeting backtest
 
