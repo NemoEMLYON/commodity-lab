@@ -2,6 +2,36 @@
 
 Newest session first. Each entry: done / next / decisions / open issues.
 
+## S3 — 2026-10-17 — Modelling table and anti-leakage tests
+
+**Done**
+- `R/02_features.R`: zero-volume rule, target, HAR and leverage features,
+  external features with availability dates, as-of join, long panel saved
+  to `data/processed/features.rds`. See CLAUDE.md > Modelling table.
+- `tests/test_features.R` + `tests/helper-fake-raw.R`: 20 expectations
+  (as-of join, next trading day, GPR dates, past-years mean, zero volume,
+  target/HAR perturbation, EIA publication dates, vintage test). All 32
+  tests pass in the cloud workspace; 4 injected leaks are all detected.
+
+- First run on real data (2026-10-17): 32/32 tests pass on the student's PC.
+  Table: 3970 rows per asset (CPER 3750). All features exist from
+  2011-02-03 except gas_dev (2013-01-04). Complete rows (target + all
+  features): 2013-01-04 → 2026-09-16, 3445 per asset. Last target =
+  21 trading days before the last price (2026-10-15).
+
+**Decisions**
+- Gas feature: deviation from the average of available past years (min 3).
+- Same rule (max 5 / min 3 years) for crude, for consistency.
+- All models are trained and evaluated on the same rows (complete cases
+  from 2013-01-04), so differences come from the model, not the sample.
+  First walk-forward training window: 2013–2016 (4 years).
+
+**Next (S4)**
+- `R/04_walkforward.R`: yearly expanding-window walk-forward from 2017,
+  21-day embargo; naive, EWMA (λ = 0.94) and HAR-OLS; first out-of-sample
+  table (QLIKE on variance, RMSE on log vol); Jensen correction when going
+  back from log vol to variance.
+
 ## S2 — 2026-10-17 — External data sources and quality checks
 
 **Done**

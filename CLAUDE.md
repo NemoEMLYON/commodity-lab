@@ -121,6 +121,31 @@ Course: "Machine Learning with R", emlyon. Mid-project oral: 2026-10-31.
     years; the out-of-sample period (2017+) is mostly clean. Robustness check
     planned: results without CPER, and CPER trained from 2016 only.
 
+## Modelling table (`data/processed/features.rds`, built by 02_features.R)
+
+One row per (asset, trading day t). Columns:
+
+| Column | Definition | Available at close t because |
+|--------|------------|------------------------------|
+| target | log annualised realised vol, returns t+1..t+21 | (future: the thing to predict) |
+| har_d / har_w / har_m | log annualised realised vol over the last 1 / 5 / 22 days | returns up to t |
+| neg_d / neg_w / neg_m | mean of min(return, 0) over 1 / 5 / 22 days | returns up to t |
+| log_vix / log_ovx / log_gvz | log(index / 100) | FRED value of day t-1 (next-day rule) |
+| usd_ret_22 / usd_vol_22 | UUP 22-day log return / log realised vol | same exchange close |
+| crude_dev / gas_dev | stocks / average of same week in past years (max 5, min 3) - 1 | publication day + 1 trading day |
+| log_gpr_7 / log_gpr_30 / gpr_shock | log 7-day and 30-day mean GPR, and their difference | weekly Monday update + buffer |
+| hdd_anomaly | 7-day mean HDD (10 cities) minus same window in past years (max 10, min 3) | next-day rule |
+
+Realised vol = sqrt(252 × mean of squared daily log returns), floored at 1%
+annualised before the log (zero-return days would give log(0)).
+
+Anti-leakage tests (`tests/test_features.R`): perturbation tests on target
+and HAR, publication-date tests (EIA, GPR), and a **vintage test**: the
+table rebuilt from only the data published at a cutoff date must match the
+full table on every day up to that cutoff. Checked to fail on 4 injected
+leaks (HAR 1 day ahead, EIA at week end, GPR rolling window ahead,
+implied vol same day).
+
 ## Known limitations
 
 - USO changed its roll strategy and did a 1-for-8 reverse split in 2020
@@ -131,7 +156,8 @@ Course: "Machine Learning with R", emlyon. Mid-project oral: 2026-10-31.
 - CPER illiquid in its first years: 595 days with High == Low, 329 days
   with zero volume (see decisions 13–14).
 - EIA weekly gas storage (Lower 48) starts 2010-01-01, so a 5-year average
-  is only available from 2015 (choice of gas feature open, see log).
+  is only available from 2015. Decision (S3): deviation from the average of
+  the available past years, at least 3 → gas_dev starts in early 2013.
 
 ## Current status
 
