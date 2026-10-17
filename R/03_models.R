@@ -119,13 +119,25 @@ fit_lasso <- function(train, features, n_folds = CV_FOLDS, horizon = HORIZON) {
        resid_var  = mean(resid^2))
 }
 
+# `features` is a vector of column names, or a function(asset) returning one
+# (asset-specific feature blocks, see below).
+resolve_features <- function(features, asset) {
+  if (is.function(features)) features(asset) else features
+}
+
 make_lasso <- function(name, features) {
+  force(features)   # evaluate now: R arguments are lazy (see make_rf)
   list(
     name    = name,
     pooled  = FALSE,
-    fit     = function(train) fit_lasso(train, features),
+    fit     = function(train) {
+      cols   <- resolve_features(features, train$asset[1])
+      fitted <- fit_lasso(train, cols)
+      fitted$features <- cols
+      fitted
+    },
     predict = function(fitted, test) {
-      newx <- as.matrix(test[, features])
+      newx <- as.matrix(test[, fitted$features])
       as.numeric(predict(fitted$glmnet, newx = newx, s = fitted$lambda))
     }
   )
@@ -149,21 +161,29 @@ rf_data <- function(df, features, pooled) {
 }
 
 make_rf <- function(name, features, pooled, min_node_size, num_trees = RF_TREES) {
+  # R evaluates arguments lazily, only when first used. `features` is only
+  # used inside fit(), i.e. much later: if the caller's variable has changed
+  # in between (a loop), every model would get its LAST value. force() fixes
+  # each argument at creation time.
+  force(features); force(pooled); force(min_node_size); force(num_trees)
   list(
     name   = name,
     pooled = pooled,
     fit    = function(train) {
-      data <- rf_data(train, features, pooled)
+      if (pooled && is.function(features)) stop("asset-specific features need pooled = FALSE")
+      cols <- resolve_features(features, train$asset[1])
+      data <- rf_data(train, cols, pooled)
       rf <- ranger(target ~ ., data = data,
                    num.trees     = num_trees,
                    min.node.size = min_node_size,       # minimum rows per leaf
                    respect.unordered.factors = "order", # how to split on asset
                    seed          = RF_SEED)
-      list(rf = rf, resid_var = mean((data$target - rf$predictions)^2))
+      list(rf = rf, features = cols,
+           resid_var = mean((data$target - rf$predictions)^2))
     },
     predict = function(fitted, test) {
       test$target <- NA_real_                     # not used, keeps columns aligned
-      predict(fitted$rf, data = rf_data(test, features, pooled))$predictions
+      predict(fitted$rf, data = rf_data(test, fitted$features, pooled))$predictions
     }
   )
 }
@@ -187,4 +207,50 @@ ml_models <- function(rf_pooled, rf_min_node_size) {
     make_rf("rf_base", BASE_FEATURES, rf_pooled, rf_min_node_size),
     make_rf("rf_full", FULL_FEATURES, rf_pooled, rf_min_node_size)
   )
+}
+
+
+# ---- Asset-specific feature blocks ------------------------------------------
+#
+# Blocks are added one at a time, so the gain of each block can be measured:
+#   B1 own returns (BASE_FEATURES)          -> models lasso_base / rf_base
+#   B2 + implied vol: the asset's own index when one exists (OVX for oil,
+#      GVZ for gold), and the VIX for every asset
+#   B3 + geopolitical risk
+#   B4 + fundamentals relevant to the asset (EIA crude stocks for oil, gas
+#      storage and heating degree days for natural gas) and the dollar
+# Mapping fixed in the S0 plan: no public implied vol for copper, gas or corn;
+# EIA stocks only for oil and gas; HDD mainly relevant for gas.
+
+IMPLIED_VOL_BY_ASSET <- list(oil = c("log_ovx", "log_vix"),
+                             gold = c("log_gvz", "log_vix"),
+                             copper = "log_vix", natgas = "log_vix", corn = "log_vix")
+
+FUNDAMENTALS_BY_ASSET <- list(oil = "crude_dev",
+                              natgas = c("gas_dev", "hdd_anomaly"),
+                              gold = character(0), copper = character(0),
+                              corn = character(0))
+
+GPR_FEATURES    <- c("log_gpr_7", "log_gpr_30", "gpr_shock")
+DOLLAR_FEATURES <- c("usd_ret_22", "usd_vol_22")
+
+block_features <- function(block, asset) {
+  b1 <- BASE_FEATURES
+  b2 <- c(b1, IMPLIED_VOL_BY_ASSET[[asset]])
+  b3 <- c(b2, GPR_FEATURES)
+  b4 <- c(b3, FUNDAMENTALS_BY_ASSET[[asset]], DOLLAR_FEATURES)
+  list(b1 = b1, b2 = b2, b3 = b3, b4 = b4)[[block]]
+}
+
+# Lasso and forest on blocks B2..B4 (B1 = the *_base models of the 2x2).
+block_models <- function(rf_min_node_size) {
+  blocks <- c(b2_iv = "b2", b3_gpr = "b3", b4_fund = "b4")
+  models <- list()
+  for (label in names(blocks)) {
+    feats <- local({ b <- blocks[[label]]; function(asset) block_features(b, asset) })
+    models[[length(models) + 1]] <- make_lasso(paste0("lasso_", label), feats)
+    models[[length(models) + 1]] <- make_rf(paste0("rf_", label), feats,
+                                            pooled = FALSE, min_node_size = rf_min_node_size)
+  }
+  models
 }

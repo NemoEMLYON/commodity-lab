@@ -12,7 +12,8 @@ Then measure the economic value: does a better forecast keep a vol-targeted
 portfolio closer to its risk target, after costs? The goal is risk control,
 not price prediction. "ML does not beat HAR" is a valid result.
 
-Course: "Machine Learning with R", emlyon. Mid-project oral: 2026-10-31.
+Course: "Machine Learning with R", emlyon. Mid-project oral: 2026-12-31
+(the student corrected the date; earlier notes said 2026-10-31).
 
 ## Working with the student
 
@@ -173,6 +174,21 @@ implied vol same day).
   min.node.size ∈ {5, 50, 200} chosen on validation years 2015–2016 only
   (lowest pooled QLIKE, full features), then frozen for 2017+.
   resid_var = out-of-bag residual variance.
+
+## Statistical tests and blocks (05_inference.R, block models in 03_models.R)
+
+- Diebold-Mariano on QLIKE vs HAR, d = loss(model) - loss(HAR); pooled DM
+  averages d across assets per date. Newey-West variance written by hand
+  (Bartlett, lag 21), checked against sandwich::NeweyWest in the tests.
+- Mincer-Zarnowitz on log vol, target = a + b × forecast, HAC Wald test of
+  (a, b) = (0, 1) with sandwich::NeweyWest (lag 21). b > 1: forecasts too
+  smooth (over-shrunk).
+- Asset-specific blocks (nested): B1 own returns; B2 + implied vol (OVX +
+  VIX for oil, GVZ + VIX for gold, VIX for others); B3 + GPR; B4 +
+  fundamentals (crude_dev for oil; gas_dev + hdd_anomaly for natgas) +
+  dollar. Lasso and forest (per asset, settings from validation) on B2–B4;
+  B1 = *_base. Mapping as stated in the S0 plan.
+- `data/processed/results.rds`: list of all result tables.
 
 ## Known limitations
 
