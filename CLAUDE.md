@@ -190,6 +190,20 @@ implied vol same day).
   B1 = *_base. Mapping as stated in the S0 plan.
 - `data/processed/results.rds`: list of all result tables.
 
+## Backtest (06_backtest.R)
+
+- Vol targeting per asset: weight = 10% / forecast vol (sqrt of pred_var,
+  Jensen-corrected), capped at 2; rest in cash at 0%. Decision at close t
+  applies from day t+1. Rebalance every 5 trading days if |desired /
+  current - 1| > 10%; weights drift between trades; costs 5 bp × traded
+  exposure.
+- Strategies: naive, ewma, har, lasso_b2_iv, rf_b2_iv + buy_hold (weight 1)
+  + oracle (weight from the realised future variance: infeasible upper
+  bound).
+- Metrics: ann_vol, risk_rmse (RMSE of rolling 63-day vol vs target:
+  primary), breach_pct (% of days rolling vol > 15%), max drawdown,
+  turnover per year, annual return, Sharpe. `data/processed/backtest.rds`.
+
 ## Known limitations
 
 - USO changed its roll strategy and did a 1-for-8 reverse split in 2020

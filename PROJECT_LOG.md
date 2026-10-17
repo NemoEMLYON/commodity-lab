@@ -2,6 +2,60 @@
 
 Newest session first. Each entry: done / next / decisions / open issues.
 
+## S7 — 2026-10-17 — Vol-targeting backtest
+
+**Done**
+- `R/06_backtest.R`: target weight with leverage cap, weekly rebalancing
+  with no-trade band, weight drift, costs; buy & hold and oracle
+  references; risk metrics and summary (per asset and average).
+- `tests/test_backtest.R`: cap, identity with weight 1, drift, costs, band,
+  rebalancing days, no look-ahead, oracle hits 10% on regime-switching
+  data, drawdown. 95 tests pass in the cloud workspace.
+- First real run, 2017-01 → 2026-09, average over the 5 assets:
+
+  | strategy | ann_vol | risk_rmse | breach % | max_dd | turnover/yr | Sharpe |
+  |---|---|---|---|---|---|---|
+  | oracle | 10.0% | 0.006 | 0.0 | -21.7% | 2.27 | 0.43 |
+  | ewma | 10.6% | 0.017 | 1.4 | -23.8% | 1.53 | 0.41 |
+  | naive | 11.1% | 0.018 | 1.9 | -24.4% | 2.08 | 0.42 |
+  | har | 10.3% | 0.021 | 2.4 | -23.0% | 1.12 | 0.40 |
+  | rf_b2_iv | 10.5% | 0.025 | 4.2 | -24.2% | 1.24 | 0.37 |
+  | lasso_b2_iv | 10.4% | 0.027 | 3.8 | -24.0% | 0.43 | 0.37 |
+  | buy_hold | 30.9% | 0.221 | 80.4 | -58.1% | 0.10 | 0.33 |
+
+  Oil: har 0.0194, lasso_b2_iv 0.0206 (ann_vol 10.09%, closest to target),
+  ewma 0.0210, naive 0.0219, rf_b2_iv 0.0278. Natgas: buy & hold -23%/yr,
+  max_dd -94%; vol-targeted about -1.6%/yr, max_dd about -27%.
+
+**Reading**
+1. Vol targeting itself carries most of the economic value: risk 31% →
+   ~10.5%, breaches 80% → 1–4%, max drawdown -58% → -24%, whatever the
+   forecast. Average Sharpe also rises (0.33 → 0.40), in line with
+   volatility-managed portfolios (Moreira & Muir, 2017).
+2. Differences between forecasts are second order: risk_rmse 0.017–0.027,
+   versus 0.006 for the oracle and 0.221 for buy & hold.
+3. The ranking flips: EWMA, beaten by HAR on QLIKE, tracks the target best.
+   Likely reason: horizon mismatch. Models forecast vol over the next 21
+   days, but the portfolio is rebalanced every 5 days, so what matters is
+   the next week's vol; EWMA reacts fastest, while HAR and especially the
+   Lasso (MZ b > 1: over-smooth, turnover 0.43) react slowly.
+4. Oil: the Lasso-OVX gain in QLIKE (-20%, significant) does not turn into
+   better risk tracking than HAR (0.0206 vs 0.0194); it gets the closest
+   average vol (10.09%) with half the turnover.
+5. Prediction from S4 confirmed: HAR under-predicts variance (var_ratio
+   0.88), its strategies run slightly hot (10.3%). Corn, with var_ratio
+   1.01, runs at 9.7%.
+
+**Next (S8)**
+- Inverse-vol portfolio over the five assets, vol-targeted.
+- Sensitivity of the backtest: costs 0 / 20 bp, daily vs weekly
+  rebalancing, band 0 / 20%.
+- Test the horizon explanation: rerun with a 5-day target (HORIZON = 5)
+  for the weekly-rebalanced strategy, labelled as an extension.
+
+**Open issues**
+- Is the risk_rmse ranking significant? (block bootstrap)
+
 ## S6 — 2026-10-17 — Statistical tests, per-year view, feature blocks
 
 **Done**

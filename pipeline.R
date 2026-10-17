@@ -6,6 +6,7 @@ source("R/02_features.R")
 source("R/03_models.R")
 source("R/04_walkforward.R")
 source("R/05_inference.R")
+source("R/06_backtest.R")
 
 # Step 1 — raw data (downloaded once, then read from data/raw/)
 raw <- download_all()
@@ -67,3 +68,12 @@ message("\n== QLIKE / HAR by year, pooled")
 print(results$by_year)
 message("\n== QLIKE / HAR by year, oil")
 print(results$by_year_oil)
+
+# Step 6 — economic value: vol targeting per asset (target 10%, weekly
+# rebalancing, no-trade band, 5 bp costs), out of sample
+backtest <- run_backtest(predictions, features)
+saveRDS(backtest, BACKTEST_PATH)
+bt_summary <- backtest_summary(backtest)
+message("\n== Vol targeting at ", 100 * TARGET_VOL, "% (risk_rmse: distance of the ",
+        "rolling 3-month vol to the target; lower is better)")
+print(bt_summary, digits = 3)
