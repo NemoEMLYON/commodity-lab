@@ -2,7 +2,33 @@
 
 Newest session first. Each entry: done / next / decisions / open issues.
 
-## S9 — 2026-10-17 — Site foundations: data export, design system, hero (in progress)
+## S10 — 2026-10-17 — Site: the four-chapter story
+
+**Done**
+- Student feedback on S9 prototype: "j'adore le rendu" → direction kept.
+- Oil +128% 1-year return checked: 2026 oil rally on the Iran conflict
+  (WTI 92.19 on 2026-07-23 vs 67.28 before the escalation); magnitude not
+  fully verified, direction real.
+- `site/index.html` + `css/main.css` + new `js/story.js`, after the
+  materials section:
+  01 Risk moves: realised vol held vs steered with HAR, per asset, vs the
+     10% target (backtest.json).
+  02 Only what was known: availability timeline for values describing
+     Fri 9 Jan 2015 (same dates as the tests): measured / published /
+     usable per source.
+  03 HAR equation + 2×2 grid (results.json design_2x2).
+  04 Block heatmap asset × block, Lasso / forest toggle, DM marks at 5%.
+  Checked at 1440 px and 390 px, no overflow, no console error;
+  preview republished (version 2).
+- Correction: oil lasso_b2_iv beats HAR in 9 of 10 test years (only 2024
+  worse; 2026 0.996 ≈ tie), not 8 as written in S6.
+
+**Next (S11)**
+- Dashboard: forecasts vs realised per asset and model (forecasts.json),
+  model comparison, economic value (risk tracking, horizon finding).
+- Then simulator in JS validated against R, methodology, deploy.
+
+## S9 — 2026-10-17 — Site foundations: data export, design system, hero
 
 **Decisions**
 - Static site (student: "the architecture best suited to my visual

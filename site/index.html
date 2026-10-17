@@ -19,6 +19,7 @@
     <a class="brand" href="#top">Liquid Commodities Lab</a>
     <nav aria-label="Main">
       <a href="#materials">Materials</a>
+      <a href="#story">Findings</a>
       <a href="https://github.com/NemoEMLYON/commodity-lab">Code on GitHub</a>
     </nav>
   </div>
@@ -74,6 +75,102 @@
     </div>
   </section>
 
+  <section id="story" class="story" aria-label="How the study works">
+
+    <article class="chapter" aria-labelledby="ch1-title">
+      <div class="wrap chapter-grid">
+        <div class="chapter-text">
+          <p class="chapter-no num">01</p>
+          <h2 id="ch1-title">Risk moves</h2>
+          <p>A manager who holds a commodity ETF and wants a steady 10% annual risk has
+            one lever: how much of it to hold. Hold less when volatility is about to rise,
+            more when it is about to fall.</p>
+          <p>Doing nothing leaves the risk wherever the market puts it. Steering it with a
+            forecast of next month's volatility brings it back near the target, for every
+            commodity. The whole question is how good that forecast can be.</p>
+        </div>
+        <figure class="chapter-figure">
+          <div class="bars" id="risk-bars"></div>
+          <figcaption>Realised volatility, January 2017 to September 2026, out of sample.
+            Steered: weight = 10% / HAR forecast, capped at 2, rebalanced weekly,
+            5 bp costs.</figcaption>
+        </figure>
+      </div>
+    </article>
+
+    <article class="chapter" aria-labelledby="ch2-title">
+      <div class="wrap chapter-grid">
+        <div class="chapter-text">
+          <p class="chapter-no num">02</p>
+          <h2 id="ch2-title">Only what was known</h2>
+          <p>Every input enters the model on the day it was public, not on the day it
+            describes. Inventories measured in the week to Friday come out the next
+            Wednesday. The geopolitical risk index is refreshed once a week.</p>
+          <p>Use a number a few days early and any model looks brilliant in a backtest.
+            These dates are enforced in the R code and checked by automated tests.</p>
+        </div>
+        <figure class="chapter-figure">
+          <div class="timeline-scroll">
+            <div class="timeline" id="timeline" role="table" aria-label="When each input becomes usable"></div>
+          </div>
+          <figcaption>Example from the test suite: values describing Friday 9 January 2015.
+            A value can be used at the close of its "usable" day.</figcaption>
+        </figure>
+      </div>
+    </article>
+
+    <article class="chapter" aria-labelledby="ch3-title">
+      <div class="wrap chapter-grid">
+        <div class="chapter-text">
+          <p class="chapter-no num">03</p>
+          <h2 id="ch3-title">A 2009 regression against machine learning</h2>
+          <p>The benchmark is HAR (Corsi, 2009): next month's volatility explained by the
+            volatility of the last day, week and month. Three numbers, one regression.</p>
+          <p>Against it: a Lasso and a random forest, each trained twice, once on the
+            commodity's own returns and once with implied volatility, the dollar,
+            inventories, geopolitical risk and weather. Forecast loss is measured with
+            QLIKE, out of sample, from 2017.</p>
+        </div>
+        <figure class="chapter-figure">
+          <p class="equation" aria-label="log sigma for the next 21 days equals beta zero plus beta d times log sigma of the last day, plus beta w times log sigma of the last week, plus beta m times log sigma of the last month">
+            log σ<sub>t+1…t+21</sub> = β<sub>0</sub> + β<sub>d</sub> log σ<sub>day</sub>
+            + β<sub>w</sub> log σ<sub>week</sub> + β<sub>m</sub> log σ<sub>month</sub></p>
+          <div class="grid-2x2" id="grid-2x2"></div>
+          <figcaption>Forecast loss relative to HAR, pooled over the five commodities.
+            Below 1.00 would beat HAR.</figcaption>
+        </figure>
+      </div>
+    </article>
+
+    <article class="chapter" aria-labelledby="ch4-title">
+      <div class="wrap chapter-grid chapter-grid--wide">
+        <div class="chapter-text">
+          <p class="chapter-no num">04</p>
+          <h2 id="ch4-title">Where the edge is</h2>
+          <p>Adding one block of inputs at a time shows what each one brings. Implied
+            volatility is the block that helps, where a commodity has its own options
+            index: OVX for crude oil, GVZ for gold.</p>
+          <p>Crude oil with implied volatility is the one result that holds up: about 20%
+            lower loss than HAR, significant at the 1% level, and better in every test
+            year except 2024.
+            Inventories and weather add nothing prices did not already know.</p>
+          <div class="toggle" role="group" aria-label="Model family">
+            <button type="button" class="toggle-btn" data-family="lasso" aria-pressed="true">Lasso</button>
+            <button type="button" class="toggle-btn" data-family="rf" aria-pressed="false">Random forest</button>
+          </div>
+        </div>
+        <figure class="chapter-figure">
+          <div class="heatmap-scroll"><div class="heatmap" id="heatmap" role="table" aria-label="Forecast loss relative to HAR by commodity and input block"></div></div>
+          <figcaption><span class="mark-better" aria-hidden="true">▲</span> significantly better than HAR,
+            <span class="mark-worse" aria-hidden="true">▼</span> significantly worse
+            (Diebold-Mariano test with Newey-West errors, 5% level, about 65 comparisons in
+            total). Values below 1.00 mean a lower loss than HAR.</figcaption>
+        </figure>
+      </div>
+    </article>
+
+  </section>
+
 </main>
 
 <footer class="site-foot">
@@ -87,6 +184,7 @@
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
 <script src="js/hero.js"></script>
+<script src="js/story.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

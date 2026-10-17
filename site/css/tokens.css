@@ -32,6 +32,10 @@
   --m-corn: #a5b366;
   --material: var(--m-gold);          /* follows the selected commodity */
 
+  /* Semantic: better / worse than the benchmark (not accents) */
+  --better: #8fbf9f;
+  --worse: #c96d55;
+
   /* Type: display (headlines only), text, data */
   --font-display: "One Slice", "Oswald", "Arial Narrow", Impact, sans-serif;
   --font-body: "Manrope", "Segoe UI", system-ui, sans-serif;

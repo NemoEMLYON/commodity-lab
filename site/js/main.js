@@ -9,7 +9,7 @@
 
   async function loadData() {
     if (window.SITE_DATA) return window.SITE_DATA;
-    const names = ["meta", "assets", "vol_history"];
+    const names = ["meta", "assets", "vol_history", "results", "backtest"];
     const out = {};
     await Promise.all(names.map(async n => {
       const res = await fetch(`data/${n}.json`);
@@ -46,6 +46,7 @@
   const tickers = Object.fromEntries(assets.map(a => [a.id, a.ticker]));
 
   if (window.Hero) window.Hero.init(data.vol_history, colors, tickers);
+  if (window.gsap && window.ScrollTrigger) gsap.registerPlugin(ScrollTrigger);
 
 
   // ---- Material cards ---------------------------------------------------------
@@ -193,4 +194,5 @@
 
   document.querySelector(".data-date").textContent = longDate(data.meta.sample_end);
   select("gold");
+  if (window.Story) window.Story.init(data, { pct, colors });
 })();
