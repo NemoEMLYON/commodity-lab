@@ -202,3 +202,34 @@ simulator_fixtures <- function(sim, settings = SIM_CHECK_SETTINGS,
   }
   list(settings = settings, cases = do.call(rbind, rows))
 }
+
+
+# ---- CSV downloads (offered on the site's method section) -----------------------
+
+export_site_csv <- function(predictions, results, backtest_summary_table,
+                            dir = file.path(SITE_DATA_DIR, "csv"),
+                            models = c("naive", "ewma", "har", "lasso_b2_iv", "rf_b2_iv")) {
+  dir.create(dir, recursive = TRUE, showWarnings = FALSE)
+
+  # Daily out-of-sample forecasts, wide: one column per model (annualised vol).
+  p <- predictions[predictions$model %in% models, ]
+  base <- unique(p[, c("asset", "date", "realized_var")])
+  wide <- data.frame(asset = base$asset, date = format(base$date),
+                     realised_vol_next_21d = round(sqrt(base$realized_var), 6))
+  for (m in models) {
+    pm <- p[p$model == m, ]
+    key <- paste(pm$asset, pm$date)
+    wide[[paste0("forecast_", m)]] <- round(sqrt(pm$pred_var[match(paste(base$asset, base$date), key)]), 6)
+  }
+  wide <- wide[order(wide$asset, wide$date), ]
+
+  paths <- c(
+    file.path(dir, "forecasts_daily.csv"),
+    file.path(dir, "model_evaluation.csv"),
+    file.path(dir, "backtest_summary.csv")
+  )
+  write.csv(wide, paths[1], row.names = FALSE)
+  write.csv(results$evaluation, paths[2], row.names = FALSE)
+  write.csv(backtest_summary_table, paths[3], row.names = FALSE)
+  paths
+}

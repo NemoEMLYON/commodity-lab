@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
+<a class="skip-link" href="#materials">Skip to the content</a>
 
 <header class="site-nav">
   <div class="wrap">
@@ -22,6 +23,7 @@
       <a href="#story">Findings</a>
       <a href="#lab">Lab</a>
       <a href="#simulator">Simulator</a>
+      <a href="#method">Method</a>
       <a href="https://github.com/NemoEMLYON/commodity-lab">Code on GitHub</a>
     </nav>
   </div>
@@ -320,13 +322,113 @@
     </div>
   </section>
 
+  <section id="method" class="method" aria-labelledby="method-title">
+    <div class="wrap method-grid">
+      <div class="method-intro">
+        <h2 id="method-title">Method and limits</h2>
+        <p>Everything on this page was computed in R and exported as data files; the site only draws
+          them. The code, the tests and the data pipeline are public.</p>
+        <p class="method-links">
+          <a class="cta" href="https://github.com/NemoEMLYON/commodity-lab">Code on GitHub</a>
+        </p>
+        <div class="downloads">
+          <p>Download the data behind the charts</p>
+          <ul>
+            <li><a href="data/csv/forecasts_daily.csv" download>Daily forecasts and outcomes, CSV</a></li>
+            <li><a href="data/csv/model_evaluation.csv" download>Model evaluation, CSV</a></li>
+            <li><a href="data/csv/backtest_summary.csv" download>Backtest summary, CSV</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="method-items">
+        <details open>
+          <summary>Data and sources</summary>
+          <ul>
+            <li>ETF prices (GLD, USO, CPER, UNG, CORN and UUP for the dollar): daily adjusted closes from
+              Yahoo Finance via quantmod, January 2011 to October 2026.</li>
+            <li>Implied volatility: VIX, OVX and GVZ, Cboe indices from FRED.</li>
+            <li>Inventories: EIA API v2, weekly US commercial crude stocks (WCESTUS1) and Lower 48 working
+              gas in storage (NW2_EPG0_SWO_R48_BCF).</li>
+            <li>Geopolitical risk: daily GPR index, Caldara and Iacoviello (2022), <i>American Economic
+              Review</i> 112(4), CC BY.</li>
+            <li>Weather: daily mean temperature for ten US cities, Open-Meteo historical archive (ERA5
+              reanalysis), CC BY 4.0. Weather data by Open-Meteo.com.</li>
+            <li>Data quality: on days with zero volume the previous close is kept, since nothing traded.
+              This removes one bad print in CPER on 4 December 2014.</li>
+          </ul>
+        </details>
+        <details>
+          <summary>Target</summary>
+          <p>The log of annualised realised volatility over the next 21 trading days:
+            √(252 × mean of squared daily log returns), from closing prices, floored at 1% before the log.
+            Close-to-close returns are the ones a holder of the ETF actually bears.</p>
+        </details>
+        <details>
+          <summary>No look-ahead</summary>
+          <p>Each input carries the date it became usable: ETF closes the same day; implied volatility and
+            weather the next trading day; EIA inventories the trading day after publication (Wednesday for
+            crude, Thursday for gas); the geopolitical index the Wednesday after its Monday update. Values
+            are attached to the trading calendar with an as-of join.</p>
+          <p>Automated tests check the dates, perturb single returns, and rebuild the whole table from
+            only the data published at a cutoff date. Four deliberately injected leaks were all
+            detected.</p>
+        </details>
+        <details>
+          <summary>Models</summary>
+          <p>Naive (last 22 days), EWMA (λ = 0.94), HAR estimated by OLS (Corsi, 2009), Lasso (glmnet,
+            penalty chosen by purged blocked cross-validation inside each training window, one-standard-error
+            rule) and random forest (ranger, 500 trees, per asset, minimum leaf size 200, chosen on
+            2015–2016 only). Inputs are added in blocks: own returns, implied volatility, geopolitical
+            risk, then inventories, weather and the dollar where relevant.</p>
+        </details>
+        <details>
+          <summary>Validation and tests</summary>
+          <p>Walk-forward from 2017: each year, models are refitted on all earlier data whose target was
+            already known (21-day embargo) and forecast the whole year. Primary loss: QLIKE on variance,
+            with a lognormal (Jensen) correction when converting log forecasts. Diebold-Mariano tests use
+            Newey-West errors with 21 lags; Mincer-Zarnowitz regressions check calibration. The main
+            comparison (best model against HAR, five commodities pooled) was fixed in advance. About 65
+            model-by-commodity tests were run, so an isolated p-value below 5% is treated with
+            caution.</p>
+        </details>
+        <details>
+          <summary>Trading rules</summary>
+          <p>Weight = target volatility / forecast volatility, capped at 2; rebalanced weekly when the
+            weight moves by more than 10%; 5 basis points per unit traded; idle cash earns 0% and leverage
+            is free. The portfolio version weights the five ETFs by inverse forecast volatility and scales
+            them to the target with a trailing one-year correlation matrix.</p>
+        </details>
+        <details>
+          <summary>Limitations</summary>
+          <ul>
+            <li>Overlapping 21-day targets leave about 120 independent observations per commodity
+              out of sample: tests have limited power.</li>
+            <li>The geopolitical index, weather reanalysis and EIA gas storage are revised after the fact;
+              real-time vintages were not available.</li>
+            <li>CPER traded thinly in 2012–2016; USO changed its futures roll in 2020.</li>
+            <li>The backtest ignores financing costs, taxes and market impact. Past results do not
+              predict future ones. Not investment advice.</li>
+          </ul>
+        </details>
+        <details>
+          <summary>Reproduce</summary>
+          <p>With R 4.6 in the project folder: <code>renv::restore()</code>, then
+            <code>source("pipeline.R")</code>, <code>source("robustness.R")</code> and
+            <code>source("export_site.R")</code>. Tests: <code>testthat::test_dir("tests")</code> in R and
+            <code>node site/tests/test_simulator.js</code> for the simulator.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
 </main>
 
 <footer class="site-foot">
   <div class="wrap">
-    <p>Prototype. Course project for Machine Learning with R, emlyon business school.
-      Sources: Yahoo Finance, FRED, EIA, Caldara &amp; Iacoviello (GPR), Open-Meteo.
-      Not investment advice.</p>
+    <p>Liquid Commodities Lab. Course project for Machine Learning with R, emlyon business school, 2026.
+      Data: Yahoo Finance, FRED (Cboe), U.S. Energy Information Administration, Caldara and Iacoviello
+      (GPR, CC BY), Open-Meteo.com (CC BY 4.0). Not investment advice.</p>
   </div>
 </footer>
 

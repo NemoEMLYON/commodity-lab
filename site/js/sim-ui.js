@@ -137,10 +137,31 @@
         `from the R backtest. Re-run export_site.R.`;
   }
 
+  // The simulator data is large: fetch it only when the section is near.
+  function loadLater(d, helpers) {
+    const section = document.getElementById("simulator");
+    const obs = new IntersectionObserver(async entries => {
+      if (!entries[0].isIntersecting) return;
+      obs.disconnect();
+      try {
+        const [sim, checks] = await Promise.all(["simulator", "simulator_checks"].map(n =>
+          fetch(`data/${n}.json`).then(r => { if (!r.ok) throw new Error(n); return r.json(); })));
+        d.simulator = sim;
+        d.simulator_checks = checks;
+        window.SimUI.init(d, helpers);
+      } catch (err) {
+        document.getElementById("sim-check").textContent =
+          "The simulator data could not be loaded. Open the site through a web server.";
+      }
+    }, { rootMargin: "800px 0px" });
+    obs.observe(section);
+  }
+
   window.SimUI = {
     init(d, helpers) {
       data = d; h = helpers;
-      if (!data.simulator || !window.Simulator) return;
+      if (!window.Simulator) return;
+      if (!data.simulator) { loadLater(d, helpers); return; }
       $("#sim-form").addEventListener("input", update);
       $("#sim-form").addEventListener("submit", e => e.preventDefault());
       $("#sim-reset").addEventListener("click", reset);

@@ -26,4 +26,7 @@ paths <- c(paths,
            write_json_full(sim, "simulator"),
            write_json_full(simulator_fixtures(sim), "simulator_checks"))
 
+# CSV files offered for download on the site
+paths <- c(paths, export_site_csv(predictions, results, backtest_summary(backtest)))
+
 print(data.frame(file = paths, kb = round(file.size(paths) / 1024, 1)))

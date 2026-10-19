@@ -9,8 +9,8 @@
 
   async function loadData() {
     if (window.SITE_DATA) return window.SITE_DATA;
-    const names = ["meta", "assets", "vol_history", "results", "backtest", "forecasts",
-                   "simulator", "simulator_checks"];
+    // simulator.json (about 1 MB) is loaded later, when its section comes near.
+    const names = ["meta", "assets", "vol_history", "results", "backtest", "forecasts"];
     const out = {};
     await Promise.all(names.map(async n => {
       const res = await fetch(`data/${n}.json`);

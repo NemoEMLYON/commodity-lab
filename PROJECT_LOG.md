@@ -2,6 +2,51 @@
 
 Newest session first. Each entry: done / next / decisions / open issues.
 
+## S13 — 2026-10-19 — Site: method, downloads, mobile, deployment
+
+**Done**
+- `R/08_export.R`: `export_site_csv()` writes `site/data/csv/`:
+  `forecasts_daily.csv` (asset, date, realised vol over the next 21 days,
+  forecasts of naive / ewma / har / lasso_b2_iv / rf_b2_iv, in annualised
+  vol), `model_evaluation.csv`, `backtest_summary.csv`. Called from
+  `export_site.R`. Tested offline on synthetic data (181 / 8.5 / 5.6 KB).
+- Section `#method` ("Method and limits"): data and sources with licences,
+  target, no look-ahead, models, validation and tests (incl. ~65 tests →
+  caution on isolated p-values), trading rules, limitations, how to
+  reproduce; CSV download links; GitHub link. "Method" added to the nav;
+  footer credits Yahoo, FRED (Cboe), EIA, GPR (CC BY), Open-Meteo (CC BY 4.0).
+- Accessibility / mobile: skip link (visible on keyboard focus); the nav
+  wraps under the name instead of hiding "Materials"; hero caption gets
+  its 16 px gutter on phones. No horizontal overflow at 390 px.
+- Performance: `simulator.json` + `simulator_checks.json` (~1 MB) are
+  fetched only when the simulator comes within 800 px of the viewport
+  (IntersectionObserver). Checked over HTTP: 6 files at load, the 2
+  simulator files on approach, 60/60 check still passes. The preview
+  build keeps inlining everything.
+- `.github/workflows/pages.yml`: on push to main (site/ changes) or by
+  hand, runs `node site/tests/test_simulator.js`, then publishes `site/`.
+- README rewritten (short answer, reproduce, structure, publishing,
+  licences); site/README lists all JS files and the deployment.
+- Preview republished (version 5).
+
+**Next**
+- Student: rerun `export_site.R` (creates the CSVs), commit, enable
+  Pages (Settings > Pages > Source: GitHub Actions), decide the font.
+- S14 (after the site): scratch Lasso (coordinate descent) validated
+  against glmnet.
+
+**Decisions**
+- GitHub Pages via Actions (no gh-pages branch); deploy blocked if the
+  JS simulator no longer matches the R reference cases.
+- Downloads = derived results only; raw third-party data is not
+  redistributed.
+
+**Open issues**
+- One Slice licence for the public site (font/ and site/assets/fonts/ are
+  ignored by Git; until settled, headings fall back to Oswald / Arial
+  Narrow / Impact on the published site).
+- Update the PDF guide before the oral.
+
 ## S12 — 2026-10-19 — Site: interactive simulator, validated against R
 
 **Done**

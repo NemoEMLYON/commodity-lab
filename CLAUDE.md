@@ -98,8 +98,7 @@ Course: "Machine Learning with R", emlyon. Mid-project oral: 2026-12-31
    (≥ 20 lags). Primary comparison fixed in advance: best ML vs HAR on QLIKE.
    High-GPR periods analysed descriptively (too few episodes to test).
 8. **Backtest**: weekly rebalancing with a no-trade band.
-9. **App**: Shiny with `htmlTemplate()`, deployed on Posit Connect Cloud from
-   a public GitHub repo. Check free-plan usage credits before deploying.
+9. **App**: superseded in S9 by a static site on GitHub Pages (see Website).
 10. **Data snapshot**: raw data is cached on first download and not refreshed
     unless `refresh = TRUE`, so results are reproducible.
 11. **HDD cities**: 10 Northeast/Midwest metros (+ Atlanta), equal weights
@@ -236,6 +235,11 @@ implied vol same day).
   Manrope (text), IBM Plex Mono (numbers, tickers, axes).
 - Local preview needs a local server (fetch of JSON fails on file://):
   VS Code "Live Server" extension, or `python -m http.server` in `site/`.
+- Sections: hero, materials, findings, lab, simulator, method. The
+  simulator data is lazy-loaded near its section. Downloads: derived CSVs
+  in `site/data/csv/` (written by `export_site_csv()`).
+- Deployment: GitHub Pages through `.github/workflows/pages.yml` (runs the
+  JS simulator test, then publishes `site/`). Pages source = GitHub Actions.
 
 ## Known limitations
 
