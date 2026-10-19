@@ -2,6 +2,34 @@
 
 Newest session first. Each entry: done / next / decisions / open issues.
 
+## S12 — 2026-10-19 — Site: interactive simulator, validated against R
+
+**Done**
+- `R/08_export.R`: `simulator_data()` (per asset and test day: simple
+  return, forecast vol of naive / ewma / har / lasso_b2_iv / rf_b2_iv,
+  realised vol for the oracle; rounded) and `simulator_fixtures()`
+  (60 reference cases computed in R with simulate_strategy() and
+  strategy_metrics() FROM THE SAME ROUNDED INPUTS: 5 assets × 3 settings
+  [study default; daily/no band/0 bp/target 15%/cap 1.5; monthly/band
+  20%/20 bp/target 8%/cap 3] × 4 strategies [har, ewma, oracle, buy_hold]).
+  `export_site.R` writes `simulator.json` (924 KB) and
+  `simulator_checks.json` at full precision.
+- `site/js/simulator.js`: line-by-line port of 06_backtest.R (works in the
+  browser and in Node). Only trap: R days start at 1, JS at 0.
+- `site/tests/test_simulator.js` (Node): hand-made cases + the 60 R cases.
+  Real data: 60/60 identical, largest relative gap 1.8e-13. Default
+  settings reproduce the S7 backtest (e.g. oil har risk_rmse 0.0194,
+  lasso_b2_iv 0.0206). Shifting rebalancing days by one breaks 40/60.
+- `site/js/sim-ui.js` + section `#simulator`: model, target vol, leverage
+  cap, rebalancing, band, costs; six KPIs vs held; 3-month risk and
+  growth-of-$1 charts; the page re-runs the 60 checks on load and shows
+  the verdict. Preview republished (version 4).
+
+**Next (S13)**
+- Methodology and limitations section, sources, GitHub link, CSV export.
+- Mobile and accessibility pass, performance (simulator.json size).
+- Deployment on GitHub Pages; settle the One Slice licence first.
+
 ## S11 — 2026-10-19 — Site: the lab (dashboard)
 
 **Done**
