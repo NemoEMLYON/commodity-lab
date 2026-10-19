@@ -602,3 +602,54 @@ a { color: inherit; }
   .sc-bar { grid-column: 1 / -1; }
   .sc-dm { grid-column: 1 / -1; }
 }
+
+
+/* ---- Simulator ------------------------------------------------------------------------ */
+
+.simulator { padding-block: var(--s-6); border-top: 1px solid var(--line); }
+.simulator .wrap { display: grid; gap: var(--s-3); }
+
+.sim-grid { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: var(--s-3); align-items: start; }
+.sim-controls { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--s-3)); gap: var(--s-3); }
+.sim-controls fieldset { margin: 0; padding: 0; border: 0; display: grid; gap: var(--s-1); min-width: 0; }
+.sim-controls legend, .slider label { padding: 0; color: var(--ash); font-size: var(--step--1); margin-bottom: 0.4rem; }
+.sim-asset { margin: 0; display: flex; align-items: baseline; gap: var(--s-2); font-family: var(--font-display); font-size: var(--step-2); color: var(--material); }
+.sim-asset a { font-family: var(--font-body); font-size: var(--step--1); color: var(--ash); }
+
+.radio-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.radio-chips label { cursor: pointer; }
+.radio-chips input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.radio-chips span {
+  display: inline-block;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ash);
+  font-size: var(--step--1);
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+.radio-chips input:checked + span { color: var(--obsidian); background: var(--champagne); border-color: var(--champagne); font-weight: 600; }
+.radio-chips input:focus-visible + span { outline: 2px solid var(--champagne); outline-offset: 2px; }
+
+.slider { display: grid; grid-template-columns: 1fr auto; align-items: baseline; }
+.slider output { font-size: var(--step--1); color: var(--bone); }
+.slider input[type="range"] { grid-column: 1 / -1; width: 100%; accent-color: var(--champagne); margin: 0.2rem 0 0; }
+
+.sim-actions { display: grid; gap: 0.4rem; justify-items: start; }
+.sim-default { margin: 0; font-size: 0.75rem; color: var(--ash); }
+
+.sim-out { display: grid; gap: var(--s-3); min-width: 0; }
+.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-1); }
+@media (max-width: 600px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.kpi { display: grid; gap: 0.15rem; padding: var(--s-2); border: 1px solid var(--line); border-radius: var(--radius-s); background: var(--char); }
+.kpi-label { font-size: 0.75rem; color: var(--ash); }
+.kpi-value { font-size: var(--step-2); color: var(--bone); }
+.kpi-ref { font-size: 0.75rem; color: var(--ash); font-family: var(--font-data); }
+.kpi-note { font-size: 0.7rem; color: color-mix(in srgb, var(--ash) 75%, transparent); }
+
+.sim-check { margin: 0; font-size: var(--step--1); color: var(--ash); display: flex; flex-wrap: wrap; gap: var(--s-1); align-items: center; }
+
+@media (max-width: 960px) {
+  .sim-grid { grid-template-columns: minmax(0, 1fr); }
+  .sim-controls { position: static; }
+}

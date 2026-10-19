@@ -9,7 +9,8 @@
 
   async function loadData() {
     if (window.SITE_DATA) return window.SITE_DATA;
-    const names = ["meta", "assets", "vol_history", "results", "backtest", "forecasts"];
+    const names = ["meta", "assets", "vol_history", "results", "backtest", "forecasts",
+                   "simulator", "simulator_checks"];
     const out = {};
     await Promise.all(names.map(async n => {
       const res = await fetch(`data/${n}.json`);
@@ -197,5 +198,6 @@
   document.querySelector(".data-date").textContent = longDate(data.meta.sample_end);
   if (window.Story) window.Story.init(data, { pct, colors });
   if (window.Lab) window.Lab.init(data, { pct, colors, longDate });
+  if (window.SimUI) window.SimUI.init(data, { pct, colors });
   select("gold");
 })();

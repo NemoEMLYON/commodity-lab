@@ -21,6 +21,7 @@
       <a href="#materials">Materials</a>
       <a href="#story">Findings</a>
       <a href="#lab">Lab</a>
+      <a href="#simulator">Simulator</a>
       <a href="https://github.com/NemoEMLYON/commodity-lab">Code on GitHub</a>
     </nav>
   </div>
@@ -233,6 +234,92 @@
     </div>
   </section>
 
+  <section id="simulator" class="simulator" aria-labelledby="sim-title">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="sim-title">Steer it yourself</h2>
+        <p>Rerun the backtest with your own rules. Every change is recomputed in your browser with
+          the same rules as the R code, from January 2017 to September 2026.</p>
+      </div>
+
+      <div class="sim-grid">
+        <form class="panel sim-controls" id="sim-form" aria-label="Simulator settings">
+          <fieldset>
+            <legend>Commodity</legend>
+            <p class="sim-asset"><span id="sim-asset-name">Gold</span>
+              <a href="#materials">change</a></p>
+          </fieldset>
+
+          <fieldset>
+            <legend>Forecast used to size the position</legend>
+            <div class="radio-chips">
+              <label><input type="radio" name="sim-model" id="sim-m-naive" value="naive"><span>Naive</span></label>
+              <label><input type="radio" name="sim-model" id="sim-m-ewma" value="ewma"><span>EWMA</span></label>
+              <label><input type="radio" name="sim-model" id="sim-m-har" value="har" checked><span>HAR</span></label>
+              <label><input type="radio" name="sim-model" id="sim-m-lasso" value="lasso_b2_iv"><span>Lasso + implied vol</span></label>
+              <label><input type="radio" name="sim-model" id="sim-m-rf" value="rf_b2_iv"><span>Forest + implied vol</span></label>
+              <label><input type="radio" name="sim-model" id="sim-m-oracle" value="oracle"><span>Oracle</span></label>
+            </div>
+          </fieldset>
+
+          <div class="slider">
+            <label for="sim-target">Target volatility</label><output id="sim-target-out" class="num">10%</output>
+            <input type="range" id="sim-target" min="5" max="25" step="1" value="10">
+          </div>
+          <div class="slider">
+            <label for="sim-cap">Maximum leverage</label><output id="sim-cap-out" class="num">2.00×</output>
+            <input type="range" id="sim-cap" min="1" max="3" step="0.25" value="2">
+          </div>
+
+          <fieldset>
+            <legend>Rebalancing</legend>
+            <div class="radio-chips">
+              <label><input type="radio" name="sim-every" id="sim-e-1" value="1"><span>Daily</span></label>
+              <label><input type="radio" name="sim-every" id="sim-e-5" value="5" checked><span>Weekly</span></label>
+              <label><input type="radio" name="sim-every" id="sim-e-21" value="21"><span>Monthly</span></label>
+            </div>
+          </fieldset>
+
+          <div class="slider">
+            <label for="sim-band">Skip trades smaller than</label><output id="sim-band-out" class="num">10%</output>
+            <input type="range" id="sim-band" min="0" max="30" step="5" value="10">
+          </div>
+          <div class="slider">
+            <label for="sim-cost">Trading cost</label><output id="sim-cost-out" class="num">5 bp</output>
+            <input type="range" id="sim-cost" min="0" max="30" step="1" value="5">
+          </div>
+
+          <div class="sim-actions">
+            <button type="button" class="chip" id="sim-reset">Back to the study's settings</button>
+            <p class="sim-default" id="sim-default-note">These are the study's settings.</p>
+          </div>
+        </form>
+
+        <div class="sim-out">
+          <div class="kpis" id="sim-kpis"></div>
+          <figure class="panel">
+            <div class="panel-head">
+              <h3>Risk over time</h3>
+              <p>3-month realised volatility, steered versus held as is. Log scale.</p>
+            </div>
+            <div class="chart" id="sim-risk"></div>
+          </figure>
+          <figure class="panel">
+            <div class="panel-head">
+              <h3>Growth of one dollar</h3>
+              <p>Invested in January 2017, after trading costs, cash earning 0%. Log scale.</p>
+            </div>
+            <div class="chart" id="sim-wealth"></div>
+          </figure>
+        </div>
+      </div>
+
+      <p class="sim-check" id="sim-check" role="status"></p>
+      <p class="chart-note">Past results, simulated. The oracle knows the future volatility and cannot be
+        traded; it shows the best that steering could achieve. Not investment advice.</p>
+    </div>
+  </section>
+
 </main>
 
 <footer class="site-foot">
@@ -248,6 +335,8 @@
 <script src="js/hero.js"></script>
 <script src="js/story.js"></script>
 <script src="js/lab.js"></script>
+<script src="js/simulator.js"></script>
+<script src="js/sim-ui.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

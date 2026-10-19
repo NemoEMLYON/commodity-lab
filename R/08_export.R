@@ -24,6 +24,14 @@ last_of_week <- function(dates) {
   c(week[-1] != week[-length(week)], TRUE)
 }
 
+# Full precision, for the validation cases (no rounding of the reference).
+write_json_full <- function(x, name, dir = SITE_DATA_DIR) {
+  dir.create(dir, recursive = TRUE, showWarnings = FALSE)
+  path <- file.path(dir, paste0(name, ".json"))
+  write_json(x, path, auto_unbox = TRUE, digits = NA, dataframe = "rows", na = "null")
+  path
+}
+
 write_site_json <- function(x, name, dir = SITE_DATA_DIR) {
   dir.create(dir, recursive = TRUE, showWarnings = FALSE)
   path <- file.path(dir, paste0(name, ".json"))
@@ -129,4 +137,68 @@ export_site_data <- function(features, predictions, results, backtest_summary_ta
     ), "backtest")
   )
   paths
+}
+
+
+# ---- Simulator (the site's interactive backtest) -------------------------------
+#
+# The site re-runs simulate_strategy() in JavaScript. It needs, per asset and
+# per out-of-sample day: the asset's simple return and each model's forecast
+# vol. Values are rounded here, and the validation cases below are computed
+# from the SAME rounded numbers, so R and JavaScript start from identical
+# inputs and must give identical outputs (up to floating-point noise).
+
+SIM_MODELS <- c("naive", "ewma", "har", "lasso_b2_iv", "rf_b2_iv")
+
+simulator_data <- function(predictions, features, models = SIM_MODELS) {
+  out <- list()
+  for (a in ASSET_INFO$id) {
+    p <- predictions[predictions$asset == a & predictions$model %in% models, ]
+    dates <- sort(unique(p$date))
+    f <- features[features$asset == a, ]
+    entry <- list(
+      date = format(dates),
+      ret  = round(exp(f$ret[match(dates, f$date)]) - 1, 8)     # simple returns
+    )
+    first <- p[p$model == models[1], ]
+    vols <- list(oracle = round(sqrt(first$realized_var[match(dates, first$date)]), 6))
+    for (m in models) {
+      pm <- p[p$model == m, ]
+      vols[[m]] <- round(sqrt(pm$pred_var[match(dates, pm$date)]), 6)
+    }
+    entry$vol <- vols
+    out[[a]] <- entry
+  }
+  out
+}
+
+# Settings checked against the JavaScript port (study default + two extremes).
+SIM_CHECK_SETTINGS <- list(
+  default = list(target = 0.10, cap = 2.0, every = 5,  band = 0.10, cost_bp = 5),
+  tight   = list(target = 0.15, cap = 1.5, every = 1,  band = 0.00, cost_bp = 0),
+  loose   = list(target = 0.08, cap = 3.0, every = 21, band = 0.20, cost_bp = 20)
+)
+SIM_CHECK_STRATEGIES <- c("har", "ewma", "oracle", "buy_hold")
+
+# Reference results computed in R from the exported (rounded) inputs.
+simulator_fixtures <- function(sim, settings = SIM_CHECK_SETTINGS,
+                               strategies = SIM_CHECK_STRATEGIES) {
+  rows <- list()
+  for (a in names(sim)) {
+    for (s_name in names(settings)) {
+      s <- settings[[s_name]]
+      for (strat in strategies) {
+        desired <- if (strat == "buy_hold") rep(1, length(sim[[a]]$ret))
+                   else pmin(s$target / sim[[a]]$vol[[strat]], s$cap)
+        bt <- simulate_strategy(sim[[a]]$ret, desired, rebalance_every = s$every,
+                                band = s$band, cost_bp = s$cost_bp)
+        m <- strategy_metrics(bt$ret, bt$traded, target = s$target)
+        rows[[length(rows) + 1]] <- data.frame(
+          asset = a, setting = s_name, strategy = strat, m,
+          sum_ret = sum(bt$ret), last_weight = bt$weight[length(bt$weight)]
+        )
+      }
+    }
+  }
+  list(settings = settings, cases = do.call(rbind, rows))
 }

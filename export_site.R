@@ -20,4 +20,10 @@ robust      <- if (file.exists(robust_path)) readRDS(robust_path) else NULL
 paths <- export_site_data(features, predictions, results,
                           backtest_summary(backtest), robust)
 
+# Interactive simulator: inputs + reference results for the JavaScript port
+sim   <- simulator_data(predictions, features)
+paths <- c(paths,
+           write_json_full(sim, "simulator"),
+           write_json_full(simulator_fixtures(sim), "simulator_checks"))
+
 print(data.frame(file = paths, kb = round(file.size(paths) / 1024, 1)))
