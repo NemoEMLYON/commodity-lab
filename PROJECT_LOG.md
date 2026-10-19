@@ -2,6 +2,32 @@
 
 Newest session first. Each entry: done / next / decisions / open issues.
 
+## S11 — 2026-10-19 — Site: the lab (dashboard)
+
+**Done**
+- `site/js/lab.js` + section `#lab` in index.html + styles in main.css:
+  - commodity chips synced with the gallery (main.js now dispatches a
+    `material:change` event and exposes `window.selectMaterial`);
+  - model chips (HAR, EWMA, Lasso + IV, Forest + IV), each with its own
+    colour and dash pattern;
+  - D3 chart: realised vol over the next 21 days (shaded, step) vs the
+    weekly out-of-sample forecasts, log scale, hover with all values
+    (forecasts.json);
+  - forecast-quality table per asset: QLIKE vs HAR bar, DM verdict pill
+    (better / worse / no clear gap + p), Mincer-Zarnowitz slope;
+  - risk-tracking bars per asset (risk_rmse + realised vol), buy & hold
+    shown in text (off scale);
+  - "Match the horizon" panel: HAR − EWMA risk_rmse gap, 21-day weekly
+    0.0041 → 5-day weekly 0.0016 (−61%) → 21-day monthly 0.0007 (−83%,
+    from the rounded JSON values; −84% unrounded).
+- Semantic tokens `--better` / `--worse` used for the verdicts.
+- Checked at 1440 px and 390 px (no overflow, no console error, chips and
+  gallery stay in sync); preview republished (version 3).
+
+**Next (S12)**
+- Portfolio simulator in JS (target vol, leverage cap, costs, band,
+  rebalancing, model), validated against R outputs exported as fixtures.
+
 ## S10 — 2026-10-17 — Site: the four-chapter story
 
 **Done**

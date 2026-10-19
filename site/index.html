@@ -20,6 +20,7 @@
     <nav aria-label="Main">
       <a href="#materials">Materials</a>
       <a href="#story">Findings</a>
+      <a href="#lab">Lab</a>
       <a href="https://github.com/NemoEMLYON/commodity-lab">Code on GitHub</a>
     </nav>
   </div>
@@ -171,6 +172,67 @@
 
   </section>
 
+  <section id="lab" class="lab" aria-labelledby="lab-title">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="lab-title">The lab</h2>
+        <p>Every forecast the models made out of sample, week by week, against the volatility
+          that followed. Pick a commodity and the models to compare.</p>
+      </div>
+
+      <div class="lab-controls">
+        <div class="chips" id="lab-assets" role="group" aria-label="Commodity"></div>
+        <div class="chips" id="lab-models" role="group" aria-label="Models shown"></div>
+      </div>
+
+      <figure class="panel">
+        <div class="panel-head">
+          <h3 id="lab-chart-title">Forecast and outcome</h3>
+          <p id="lab-chart-sub"></p>
+        </div>
+        <div class="chart" id="lab-chart"><div class="tooltip lab-tip" hidden></div></div>
+        <figcaption class="chart-note">Shaded: volatility realised over the 21 trading days after
+          each date. Lines: the forecast made on that date, with only the data available then.
+          Weekly points, log scale, January 2017 to September 2026.</figcaption>
+      </figure>
+
+      <div class="lab-grid">
+        <figure class="panel">
+          <div class="panel-head">
+            <h3>Forecast quality</h3>
+            <p>For <span class="lab-asset-name"></span>, out of sample.</p>
+          </div>
+          <div class="score" id="lab-score" role="table" aria-label="Forecast quality by model"></div>
+          <figcaption class="chart-note">Loss vs HAR: QLIKE ratio, below 1.00 beats HAR. Gap: Diebold-Mariano
+            test with Newey-West errors. Slope: Mincer-Zarnowitz calibration, near 1 is good, above 1 the
+            forecast is too smooth, below 1 too jumpy.</figcaption>
+        </figure>
+
+        <figure class="panel">
+          <div class="panel-head">
+            <h3>Keeping risk on target</h3>
+            <p>Distance between the 3-month realised volatility and the target, for
+              <span class="lab-asset-name"></span>. Shorter is better.</p>
+          </div>
+          <div class="riskbars" id="lab-risk"></div>
+          <figcaption class="chart-note">Weight = 10% / forecast, capped at 2, rebalanced weekly when the
+            change exceeds 10%, 5 bp costs. Right column: realised volatility.</figcaption>
+        </figure>
+      </div>
+
+      <figure class="panel">
+        <div class="panel-head">
+          <h3>Match the horizon</h3>
+          <p>HAR forecasts better than EWMA, yet EWMA keeps risk closer to target. The gap shrinks when
+            the forecast horizon matches the trading horizon.</p>
+        </div>
+        <div class="riskbars" id="lab-horizon"></div>
+        <figcaption class="chart-note">Risk-tracking distance of HAR minus that of EWMA, average over the
+          five commodities. Lower means HAR catches up.</figcaption>
+      </figure>
+    </div>
+  </section>
+
 </main>
 
 <footer class="site-foot">
@@ -185,6 +247,7 @@
 <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
 <script src="js/hero.js"></script>
 <script src="js/story.js"></script>
+<script src="js/lab.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

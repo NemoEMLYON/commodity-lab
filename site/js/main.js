@@ -9,7 +9,7 @@
 
   async function loadData() {
     if (window.SITE_DATA) return window.SITE_DATA;
-    const names = ["meta", "assets", "vol_history", "results", "backtest"];
+    const names = ["meta", "assets", "vol_history", "results", "backtest", "forecasts"];
     const out = {};
     await Promise.all(names.map(async n => {
       const res = await fetch(`data/${n}.json`);
@@ -184,7 +184,9 @@
       `${asset.ticker}, ${asset.first_date.slice(0, 4)}–${asset.last_date.slice(0, 4)}. ` +
       `Now ${pct(asset.vol_now)}, median ${pct(asset.vol_median)}.`;
     drawChart(asset, true);
+    document.dispatchEvent(new CustomEvent("material:change", { detail: id }));
   }
+  window.selectMaterial = select;
 
   let resizeTimer;
   window.addEventListener("resize", () => {
@@ -193,6 +195,7 @@
   });
 
   document.querySelector(".data-date").textContent = longDate(data.meta.sample_end);
-  select("gold");
   if (window.Story) window.Story.init(data, { pct, colors });
+  if (window.Lab) window.Lab.init(data, { pct, colors, longDate });
+  select("gold");
 })();
