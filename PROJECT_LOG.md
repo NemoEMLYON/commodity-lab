@@ -39,6 +39,16 @@ Newest session first. Each entry: done / next / decisions / open issues.
   freshness table, disclaimer; hero strip with the five forecasts; "Today"
   nav link; Method block "Live forecasts". Mobile: swipeable readouts.
   Preview republished (version 6).
+- First GitHub run (manual, 12 Nov 22:59 UTC): green in 1 min 25 s, mode
+  live from GitHub's servers (Yahoo and FRED CSV reachable), forecasts
+  identical to the PC run. Found: last close 11 Nov instead of 12 Nov,
+  because getSymbols() stops before `to` (default today). Fixed with
+  `fetch_yahoo_live()` (to = today + 1) and `completed_sessions()` (drops
+  today's bar before 16:15 New York); 3 checks (open session, job time,
+  Paris after midnight). test_live.R: 16 tests, 44 checks.
+- Delivery bug: re-sending a file from a path already used wrote the old
+  content while reporting success. Rule in CLAUDE.md: new folder per
+  delivery, read back and diff.
 
 **Live results, 2 Jan - 11 Nov 2026 (980 scored days, 21 pending per asset)**
 
@@ -58,9 +68,9 @@ Newest session first. Each entry: done / next / decisions / open issues.
   year) and a good oral point: the frozen model's limits are visible live.
 
 **Next**
-- Student: rerun `live.R` (full FRED history), run all tests, move
-  live.yml into .github/workflows/, commit, push, run "Daily live update" by
-  hand and check the published site.
+- Student: `git pull` (the job commits every evening), commit the
+  same-day fix, push, run "Daily live update" by hand: last close must be
+  the latest US session.
 - Watch the first scheduled runs (Yahoo may throttle GitHub's servers).
 - January 2027: rerun pipeline.R with 2027 as test year, freeze_models.R.
 - S15: scratch Lasso (coordinate descent) validated against glmnet.

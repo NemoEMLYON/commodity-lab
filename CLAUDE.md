@@ -265,6 +265,10 @@ implied vol same day).
   refused VIXCLS while the export worked). Full history is downloaded so the
   22-day windows and the EWMA match the pipeline. EIA, weather, GPR, dollar:
   not downloaded (they only feed B3/B4 models, which are not served).
+- Yahoo live download: `to` = today (New York) + 1, because getSymbols()
+  stops before `to` (the job was one day late); today's bar is dropped
+  before 16:15 New York (`completed_sessions()`: a quote, not a close).
+- The daily job commits to main: always `git pull` before pushing.
 - Features: `build_features(raw, external = implied_vol_columns)`, the same
   code path as the pipeline (refactor checked by all existing tests).
 - Fallback: download (2 attempts, 10 s timeout) -> last live snapshot

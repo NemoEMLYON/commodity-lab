@@ -146,6 +146,27 @@ try_twice <- function(fetch, wait = 5) {
   NULL
 }
 
+# Yahoo through quantmod, including today's session once it is over.
+# getSymbols() stops BEFORE its `to` date (default: today), so on the
+# evening of day t it returned day t-1 as the last close: the daily job ran
+# one day late (seen in S14: last close 11 Nov on the evening of 12 Nov).
+fetch_yahoo_live <- function(ticker, now = Sys.time()) {
+  today_ny <- as.Date(format(now, tz = "America/New_York"))
+  x <- getSymbols(ticker, src = "yahoo", from = START_DATE, to = today_ny + 1,
+                  auto.assign = FALSE)
+  completed_sessions(x, now)
+}
+
+# Drop today's bar while the New York session is still open: before the
+# close it is a live quote, not a closing price.
+US_CLOSE_NY <- "16:15"     # 16:00 close + 15 minutes for the closing prints
+
+completed_sessions <- function(x, now = Sys.time(), close_time = US_CLOSE_NY) {
+  today_ny <- as.Date(format(now, tz = "America/New_York"))
+  closed   <- format(now, "%H:%M", tz = "America/New_York") >= close_time
+  if (closed) x else x[as.Date(index(x)) < today_ny]
+}
+
 # FRED's public CSV export: the same series as the API, without a key.
 # Used first for the live layer (the API refused requests in S14 while the
 # CSV export kept working); the API with the key is the fallback.
@@ -183,7 +204,7 @@ fetch_live_raw <- function(timeout_seconds = 10) {
   raw <- list()
   for (asset in ASSETS) {
     message("[live] Yahoo ", YAHOO_TICKERS[[asset]])
-    raw[[asset]] <- try_twice(function() fetch_yahoo(YAHOO_TICKERS[[asset]]))
+    raw[[asset]] <- try_twice(function() fetch_yahoo_live(YAHOO_TICKERS[[asset]]))
     if (is.null(raw[[asset]])) return(NULL)
   }
   for (name in names(FRED_SERIES)) {

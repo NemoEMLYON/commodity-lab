@@ -182,3 +182,20 @@ test_that("CSV values feed the implied vol columns like the API values", {
   expect_equal(iv$available, as.Date(c("2016-12-29", "2017-01-03")))   # next trading day
   expect_equal(iv$log_iv, log(c(0.20, 0.25)))
 })
+
+
+# ---- Today's session ---------------------------------------------------------------
+
+test_that("today's bar is kept only once the New York session is over", {
+  x <- fake_prices(as.Date(c("2026-11-11", "2026-11-12")), c(0, 0.01))
+  # 12 Nov 2026, 15:00 New York = 20:00 UTC (EST, UTC-5): session still open
+  open_now   <- as.POSIXct("2026-11-12 20:00:00", tz = "UTC")
+  # 12 Nov 2026, 17:30 New York = 22:30 UTC: when the daily job runs
+  closed_now <- as.POSIXct("2026-11-12 22:30:00", tz = "UTC")
+  # 13 Nov 2026, 00:05 in Paris = 18:05 New York on the 12th: closed
+  paris_now  <- as.POSIXct("2026-11-13 00:05:00", tz = "Europe/Paris")
+
+  expect_equal(format(index(completed_sessions(x, open_now))), "2026-11-11")
+  expect_equal(format(index(completed_sessions(x, closed_now))), c("2026-11-11", "2026-11-12"))
+  expect_equal(format(index(completed_sessions(x, paris_now))), c("2026-11-11", "2026-11-12"))
+})
