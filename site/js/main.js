@@ -82,8 +82,9 @@
 
   // ---- Volatility chart (D3) ------------------------------------------------------
 
-  const chartBox = document.querySelector(".chart");
-  const tooltip = document.querySelector(".tooltip");
+  // Scoped to this section: other sections (Today, Lab) have charts too.
+  const chartBox = document.querySelector("#materials .chart");
+  const tooltip = document.querySelector("#materials .tooltip");
   const EVENTS = [
     { date: "2020-03-16", label: "Covid crash" },
     { date: "2022-02-24", label: "Invasion of Ukraine" }

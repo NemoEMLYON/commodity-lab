@@ -16,8 +16,9 @@ data/processed/*
 scratch.R
 
 # Font licensed for personal, non-commercial use: do not redistribute
+# (the site now uses Gloock, SIL OFL: versioned with its licence)
 font/
-site/assets/fonts/
+site/assets/fonts/OneSlice.otf
 
 # OS / editor
 .DS_Store

@@ -869,3 +869,22 @@ a { color: inherit; }
   .lt-row .sc-name, .lt-row .sc-bar { grid-column: auto; grid-row: auto; }
   .lt-row .sc-bar { grid-template-columns: minmax(0, 1fr) 2.6em; }
 }
+
+
+/* ---- Display type: Gloock, set in capitals ------------------------------------- */
+/* A wide, high-contrast serif: capitals give the headlines a carved, material
+   feel; slightly open tracking keeps the serifs from touching. */
+.brand, .hero-title, .section-head h2, .chapter-text h2, .method-intro h2,
+.panel-head h3, .vol-head h3, .card-name, .sim-asset {
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+.hero-title { line-height: 0.9; letter-spacing: -0.01em; }
+.section-head h2, .chapter-text h2, .method-intro h2 { font-size: clamp(1.9rem, 3.8vw, 3.1rem); line-height: 1; }
+.panel-head h3, .vol-head h3, .sim-asset { font-size: clamp(1.15rem, 1.6vw, 1.4rem); line-height: 1.1; }
+.card-name { font-size: clamp(1.05rem, 1.4vw, 1.3rem); line-height: 1.1; }
+.brand { font-size: 1rem; letter-spacing: 0.06em; }
+@media (max-width: 600px) {
+  /* Phones: let "the material" break onto its own lines for a larger title */
+  .hero-title { font-size: clamp(2.5rem, 14vw, 4.5rem); }
+}

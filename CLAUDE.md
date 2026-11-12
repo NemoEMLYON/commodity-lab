@@ -110,12 +110,12 @@ Course: "Machine Learning with R", emlyon. Mid-project oral: 2026-12-31
 11. **HDD cities**: 10 Northeast/Midwest metros (+ Atlanta), equal weights
     (simplification, documented). Base 65°F. Anomaly vs the same calendar
     day in previous years only (no look-ahead).
-12. **Site typeface**: "One Slice" (Chequered Ink), file in `font/`. Display
-    font only (98 glyphs, no accents): headings, never body text or numbers.
-    Licence: free for personal, non-profit use; commercial use needs a paid
-    licence. `font/` is ignored by Git — decide before deployment whether
-    the public repo/site may serve it (buy a licence or confirm with the
-    designer).
+12. **Site typeface** (changed in S14): Gloock, SIL OFL 1.1, versioned in
+    `site/assets/fonts/` with its licence; headings in capitals. Chosen by
+    the student among 6 OFL faces rendered on the hero (One Slice felt
+    "Halloween" and its licence did not cover a public site; `font/` stays
+    ignored). Avoid the usual AI-site faces (Inter, Space Grotesk, Syne,
+    Clash Display, Instrument Serif).
 13. **Zero-volume days**: when Volume == 0 there was no trade, so Yahoo's
     "close" is not a traded price. In 02_features.R the close of such days
     is replaced by the previous close (raw data untouched). This removes the
@@ -241,13 +241,16 @@ implied vol same day).
   static under prefers-reduced-motion.
 - Design brief: `Creative Direction/*.docx` (dark warm base, champagne
   gold / copper accents, one material per commodity, purposeful motion,
-  data first). Typefaces: One Slice (display, uppercase only, headlines),
+  data first). Typefaces: Gloock (display, capitals, headlines),
   Manrope (text), IBM Plex Mono (numbers, tickers, axes).
 - Local preview needs a local server (fetch of JSON fails on file://):
   VS Code "Live Server" extension, or `python -m http.server` in `site/`.
 - Sections: hero (with a live strip), today, materials, findings, lab,
   simulator, method. The simulator data is lazy-loaded near its section. Downloads: derived CSVs
   in `site/data/csv/` (written by `export_site_csv()`).
+- Selectors: always scope to the section (`#materials .chart`): several
+  sections have `.chart` / `.tooltip` (bug in S14: the materials chart was
+  drawn into the Today chart).
 - Deployment: GitHub Pages through `.github/workflows/pages.yml` (runs the
   JS simulator test, then publishes `site/`). Pages source = GitHub Actions.
 

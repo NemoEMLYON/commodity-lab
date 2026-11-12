@@ -26,11 +26,10 @@ js/simulator.js   JS port of the R backtest (also runs in Node)
 js/sim-ui.js      simulator controls and charts; loads its data when the section is near
 tests/            node tests/test_simulator.js: JS vs 60 R reference cases
 data/             JSON and CSV exported from R (versioned)
-assets/fonts/     One Slice (not versioned: licence to settle before deploy)
+assets/fonts/     Gloock (display face, SIL OFL 1.1, licence in Gloock-OFL.txt)
 ```
 
 ## Deployment
 
 GitHub Pages publishes this folder as it is (workflow in
-`.github/workflows/pages.yml`). Without `assets/fonts/OneSlice.otf` the
-headings fall back to Oswald / Arial Narrow / Impact.
+`.github/workflows/pages.yml`).

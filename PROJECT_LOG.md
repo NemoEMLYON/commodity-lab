@@ -50,6 +50,15 @@ Newest session first. Each entry: done / next / decisions / open issues.
   content while reporting success. Rule in CLAUDE.md: new folder per
   delivery, read back and diff.
 
+- Typeface: One Slice replaced by Gloock (SIL OFL, versioned with its
+  licence), chosen from a sheet of 6 OFL faces rendered on the hero; headings
+  in capitals, sizes retuned (hero 8.2vw, 3 lines on phones). Settles the
+  font licence for the public site.
+- Bug found while checking the font: main.js took the FIRST `.chart` of the
+  page, which became the Today chart, so the materials chart was drawn there
+  and erased. Fixed by scoping (`#materials .chart`); other selectors
+  checked (all unique).
+
 **Live results, 2 Jan - 11 Nov 2026 (980 scored days, 21 pending per asset)**
 
   | asset | best so far | lasso_b2_iv / HAR | HAR 80% coverage |
@@ -85,7 +94,7 @@ Newest session first. Each entry: done / next / decisions / open issues.
 **Open issues**
 - Gold: should a faster model (EWMA) be considered in a regime break? Not
   changed: a choice made after seeing live results would be data snooping.
-- One Slice licence for the public site (unchanged).
+- (closed) Font licence: Gloock is OFL.
 
 ## S13 — 2026-10-19 — Site: method, downloads, mobile, deployment
 

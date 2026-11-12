@@ -4,9 +4,12 @@
    material cards and one large chart that follows the selection.
    Single dark look by design (creative brief: dark, warm, cinematic). */
 
+/* Display face: Gloock (The Gloock Project Authors), SIL Open Font License
+   1.1, licence in assets/fonts/Gloock-OFL.txt. Latin subset. */
 @font-face {
-  font-family: "One Slice";
-  src: url("../assets/fonts/OneSlice.otf") format("opentype");
+  font-family: "Gloock";
+  src: url("../assets/fonts/Gloock-Regular.woff2") format("woff2");
+  font-weight: 400;
   font-display: swap;
 }
 
@@ -37,7 +40,7 @@
   --worse: #c96d55;
 
   /* Type: display (headlines only), text, data */
-  --font-display: "One Slice", "Oswald", "Arial Narrow", Impact, sans-serif;
+  --font-display: "Gloock", "Bodoni Moda", Georgia, serif;
   --font-body: "Manrope", "Segoe UI", system-ui, sans-serif;
   --font-data: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
 
@@ -47,7 +50,7 @@
   --step-1: 1.25rem;
   --step-2: 1.625rem;
   --step-3: clamp(2.25rem, 5vw, 3.5rem);
-  --step-hero: clamp(4.25rem, 15vw, 14rem);
+  --step-hero: clamp(2.5rem, 8.2vw, 8.75rem);   /* Gloock is wide: ~8.6 em for "THE MATERIAL" */
 
   /* Space */
   --s-1: 0.5rem;
