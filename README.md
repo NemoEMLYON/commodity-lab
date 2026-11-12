@@ -21,6 +21,15 @@ with GitHub Pages (see below).
 - The value is in using any forecast: targeting 10% volatility cuts risk from
   about 31% to 10% and the worst drawdown from -58% to -24%.
 
+## Live forecasts
+
+Training stays offline; only the forecast is live. Every weekday after the
+US close, a GitHub Actions job (`.github/workflows/live.yml`) downloads the
+ETF prices and implied volatility indices, rebuilds the features with the
+same R functions, applies the models frozen at the start of 2026 and
+republishes the site. The "Today" section shows tonight's forecast, its 80%
+range, the inputs' freshness and the live track record since January 2026.
+
 ## Universe
 
 GLD (gold), USO (crude oil), CPER (copper), UNG (natural gas), CORN (corn),
@@ -39,6 +48,8 @@ source("pipeline.R")        # data, features, walk-forward, tests, backtest
 source("robustness.R")      # sensitivity, portfolio, 5-day horizon
 source("export_site.R")     # JSON and CSV files for the website
 testthat::test_dir("tests") # unit and anti-leakage tests
+source("freeze_models.R")   # once a year: save the models used live
+source("live.R")            # today's forecasts -> site/data/live.json
 ```
 
 The simulator on the website is a JavaScript port of the R backtest:
@@ -51,6 +62,8 @@ R/              functions, one file per pipeline step (01_data ... 08_export)
 pipeline.R      runs the main steps in order
 robustness.R    robustness checks
 export_site.R   writes site/data/ from the saved results
+freeze_models.R saves the models used live (models/, versioned)
+live.R          daily forecasts with the frozen models (site/data/live.json)
 tests/          unit and anti-leakage tests (testthat)
 site/           static website (HTML, CSS, JS, D3, GSAP)
 data/raw/       source data as received (not in Git)
@@ -65,6 +78,9 @@ docs/           project guide (PDF, French)
 2. Push to `main`. The workflow `.github/workflows/pages.yml` runs the
    simulator check, then publishes `site/`. The address appears in the
    Actions tab and in Settings > Pages.
+3. The daily live update (`live.yml`) needs no setup: it runs every weekday
+   at 22:30 UTC, or by hand from the Actions tab. Optional: a repository
+   secret `FRED_API_KEY` lets it fall back on the FRED API.
 
 ## Data and licences
 

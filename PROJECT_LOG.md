@@ -2,6 +2,81 @@
 
 Newest session first. Each entry: done / next / decisions / open issues.
 
+## S14 — 2026-11-12 — Live layer: offline training, live inference
+
+**Done**
+- `R/02_features.R`: `implied_vol_columns()` split out of `build_external()`;
+  `build_features(raw, external = build_external)`. All existing tests pass.
+- `R/09_live.R` + `freeze_models.R` + `live.R` (see CLAUDE.md > Live layer):
+  frozen 2026 models (naive, EWMA, HAR, lasso_b2_iv, rf_b2_iv), download with
+  2 attempts and fallbacks, live features through the pipeline's code,
+  forecasts, 80% intervals, freshness table, track record, live.json.
+- `freeze_models.R` on real data: T0 = 2025-12-02, usable from 2026-01-02,
+  3,248 training rows per asset, gap 0 vs the walk-forward on 885 days for
+  all 5 models. Models slimmed (lm data copy and formula environment, OOB
+  predictions): 7 MB -> 1.8 MB, still gap 0.
+- `live.R` on real data (12 Nov, last close 11 Nov): live, all 8 inputs
+  current. Live vs pipeline features: max gap 0 on 19,630 rows for every
+  column (Yahoo did not revise adjusted prices). na_differ explained:
+  target 95 = 19 days x 5 assets now known; log_* 4 = 3 Jan 2011 had no
+  31 Dec 2010 value because the CSV started in 2011 (fixed: full history).
+- FRED: the API refused VIXCLS ("incorrect number of dimensions") while the
+  public CSV export worked -> live reads fredgraph.csv (no key), API as
+  fallback. No GitHub secret needed.
+- Look-ahead caught in design: the frozen model exists only from the first
+  test day (its training targets end 21 days after T0); the track record
+  starts 2026-01-02, not T0 + 1. Test added; mutation check: injecting the
+  T0 + 1 start, or same-day implied vol, makes exactly the intended test fail.
+- `tests/test_live.R`: 15 tests, 41 checks (identical features, frozen =
+  walk-forward, no look-ahead, pending days, intervals, fallback chain,
+  LIVE_DISABLED, offline marking, freshness, FRED CSV parser).
+- `.github/workflows/live.yml`: weekdays 22:30 UTC, R 4.6.1 + renv cache,
+  snapshot cache, commit live.json, deploy Pages in the same workflow.
+- Site: section "Today" (js/live.js) after the hero: badge live / offline /
+  stale, five readouts (forecast, 80% range gauge, last 22 days, weekly
+  change, historical rank, exposure at 10% risk), forecast vs outcome chart
+  since 2 Jan with pending zone and today's window, live record table,
+  freshness table, disclaimer; hero strip with the five forecasts; "Today"
+  nav link; Method block "Live forecasts". Mobile: swipeable readouts.
+  Preview republished (version 6).
+
+**Live results, 2 Jan - 11 Nov 2026 (980 scored days, 21 pending per asset)**
+
+  | asset | best so far | lasso_b2_iv / HAR | HAR 80% coverage |
+  |---|---|---|---|
+  | gold | EWMA 0.63 | 1.52 | 60% |
+  | oil | Lasso 0.98 | 0.98 | 81% |
+  | copper | HAR 1.00 | 1.42 | 87% |
+  | natgas | HAR 1.00 | 1.07 | 66% |
+  | corn | Lasso 0.78 | 0.78 | 81% |
+  | all | EWMA 0.975 | 1.25 | 75% |
+
+- 2026 is a regime break (gold volatility up to ~50% in February, oil ~70%
+  in March): models fitted on data to Dec 2025 react slowly, fast EWMA wins
+  on gold, intervals are too narrow (75% instead of 80%). Oil's Lasso + OVX
+  edge shrinks to 0.98. Consistent with the study (2026 is its last test
+  year) and a good oral point: the frozen model's limits are visible live.
+
+**Next**
+- Student: rerun `live.R` (full FRED history), run all tests, move
+  live.yml into .github/workflows/, commit, push, run "Daily live update" by
+  hand and check the published site.
+- Watch the first scheduled runs (Yahoo may throttle GitHub's servers).
+- January 2027: rerun pipeline.R with 2027 as test year, freeze_models.R.
+- S15: scratch Lasso (coordinate descent) validated against glmnet.
+
+**Decisions**
+- Serve only B2 models live (B3/B4 never beat B2): no EIA, weather, GPR or
+  dollar download, no third-party raw data in Git.
+- Headline model: HAR everywhere except oil (Lasso + OVX), fixed from the
+  2017-2025 study, not from live results (no cherry-picking).
+- FRED CSV export first, API fallback.
+
+**Open issues**
+- Gold: should a faster model (EWMA) be considered in a regime break? Not
+  changed: a choice made after seeing live results would be data snooping.
+- One Slice licence for the public site (unchanged).
+
 ## S13 — 2026-10-19 — Site: method, downloads, mobile, deployment
 
 **Done**

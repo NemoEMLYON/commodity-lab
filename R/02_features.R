@@ -216,14 +216,20 @@ weather_features <- function(x, calendar) {
   df
 }
 
-# All external features on the trading calendar (one row per trading day).
-build_external <- function(raw, calendar) {
+# Implied vol columns (log_vix, log_ovx, log_gvz) on the trading calendar.
+# A function of its own because the live layer (09_live.R) needs only these.
+implied_vol_columns <- function(raw, calendar) {
   ext <- data.frame(date = calendar)
-
   for (name in names(FRED_SERIES)) {                # vix, ovx, gvz
     iv <- implied_vol_feature(raw[[name]], calendar)
     ext[[paste0("log_", name)]] <- asof_join(calendar, iv$available, iv$log_iv)
   }
+  ext
+}
+
+# All external features on the trading calendar (one row per trading day).
+build_external <- function(raw, calendar) {
+  ext <- implied_vol_columns(raw, calendar)
 
   usd <- dollar_features(raw$dollar)
   ext$usd_ret_22 <- asof_join(calendar, usd$available, usd$usd_ret_22)
@@ -250,9 +256,11 @@ build_external <- function(raw, calendar) {
 # ---- Main entry point -------------------------------------------------------
 
 # Long table: one row per (asset, trading day).
-build_features <- function(raw) {
+# `external` builds the external columns: all of them by default; the live
+# layer passes implied_vol_columns (same code, fewer sources to download).
+build_features <- function(raw, external = build_external) {
   calendar <- sort(as.Date(index(raw$gold)))   # all ETFs share this calendar
-  ext      <- build_external(raw, calendar)
+  ext      <- external(raw, calendar)
 
   panel <- lapply(ASSETS, function(asset) {
     df <- build_asset(raw[[asset]])

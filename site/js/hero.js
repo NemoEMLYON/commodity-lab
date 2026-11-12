@@ -235,7 +235,7 @@
     tl.from(".hero-title .line > span", { yPercent: 105, duration: 1.4, stagger: 0.12 })
       .from(".hero-metal", { opacity: 0, scale: 0.92, duration: 1.8 }, 0.1)
       .to(traces, { progress: 1, duration: 2.8, ease: "power2.inOut", onUpdate: drawTraces }, 0.2)
-      .from([".hero-lede", ".hero-answer", ".hero .cta"], { y: 24, opacity: 0, duration: 1, stagger: 0.1 }, 0.6)
+      .from([".hero-lede", ".hero-answer", ".hero-actions"], { y: 24, opacity: 0, duration: 1, stagger: 0.1 }, 0.6)
       .to(".hero-title .line > span", { backgroundPosition: "0% 0", duration: 1.6, ease: "power2.inOut", stagger: 0.15 }, 1.1);
   }
 

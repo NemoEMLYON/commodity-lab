@@ -19,6 +19,7 @@
   <div class="wrap">
     <a class="brand" href="#top">Liquid Commodities Lab</a>
     <nav aria-label="Main">
+      <a href="#today" class="nav-live"><span class="live-dot" aria-hidden="true"></span>Today</a>
       <a href="#materials">Materials</a>
       <a href="#story">Findings</a>
       <a href="#lab">Lab</a>
@@ -46,11 +47,76 @@
       <p class="hero-answer"><strong>Not on average.</strong> Crude oil is the exception:
         with the volatility priced by its options market, the forecast loss falls by
         about 20% against the HAR benchmark.</p>
-      <a class="cta" href="#materials">Explore the five materials</a>
+      <div class="hero-actions">
+        <a class="cta" href="#materials">Explore the five materials</a>
+        <a class="live-strip" href="#today" hidden>
+          <span class="live-strip-label"><span class="live-dot" aria-hidden="true"></span>Tonight's forecast, next 21 days</span>
+          <span class="live-strip-items"></span>
+        </a>
+      </div>
     </div>
 
     <p class="hero-caption">Lines: 22-day realised volatility of the five ETFs, 2011–2026,
       log scale. Prices from Yahoo Finance, computed in R.</p>
+  </section>
+
+  <section id="today" class="today" aria-labelledby="today-title">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="today-head">
+          <p class="live-badge" id="live-badge"><span class="live-dot" aria-hidden="true"></span><span>Loading the latest forecast</span></p>
+          <h2 id="today-title">Today</h2>
+        </div>
+        <p>Next month's volatility, forecast after the latest US close by models frozen at the start of
+          2026. Nothing is refitted: the same models have forecast every trading day since, and their
+          record is below, outcome by outcome.</p>
+      </div>
+      <p class="live-run" id="live-run"></p>
+
+      <div class="readouts" id="live-readouts" role="group" aria-label="Today's forecast by commodity"></div>
+      <p class="readouts-legend">
+        <span class="lg"><i class="lg-point"></i>forecast</span>
+        <span class="lg"><i class="lg-band"></i>80% range</span>
+        <span class="lg"><i class="lg-now"></i>volatility of the last 22 days</span>
+        <span>Hold at 10% risk: the exposure a manager targeting 10% volatility would carry tonight.</span>
+      </p>
+
+      <div class="today-grid">
+        <figure class="panel">
+          <div class="panel-head">
+            <h3 id="live-chart-title">Forecast and outcome</h3>
+            <p id="live-chart-sub"></p>
+          </div>
+          <div class="chart" id="live-chart"><div class="tooltip lab-tip" hidden></div></div>
+          <figcaption class="chart-note">Line: the forecast made each day for the next 21 trading days, with the
+            frozen model and only the data available that evening. Band: its 80% range. Shaded: the volatility
+            that actually followed. The last 21 days are still pending: their outcome is not known yet.</figcaption>
+        </figure>
+
+        <figure class="panel">
+          <div class="panel-head">
+            <h3>Live record</h3>
+            <p id="live-track-sub"></p>
+          </div>
+          <div class="score" id="live-track" role="table" aria-label="Live forecast quality by model"></div>
+          <figcaption class="chart-note">Loss vs HAR: QLIKE ratio on the days whose outcome is known, below 1.00
+            beats HAR. In range: share of days where the outcome fell inside the 80% range (80% is well
+            calibrated). Naive and EWMA have no range.</figcaption>
+        </figure>
+      </div>
+
+      <figure class="panel freshness">
+        <div class="panel-head">
+          <h3>Data freshness</h3>
+          <p>What the forecast was built from. Prices count from their own close; implied volatility from
+            FRED the next trading day, as in training. Inventories, weather, geopolitics and the dollar feed
+            no served model, so they are not downloaded.</p>
+        </div>
+        <div class="fresh-list" id="live-fresh" role="table" aria-label="Freshness of the inputs"></div>
+      </figure>
+
+      <p class="disclaimer">Forecasts are model estimates, not investment advice.</p>
+    </div>
   </section>
 
   <section id="materials" class="materials" aria-labelledby="materials-title">
@@ -400,6 +466,19 @@
             them to the target with a trailing one-year correlation matrix.</p>
         </details>
         <details>
+          <summary>Live forecasts</summary>
+          <p>Training stays offline; only the forecast is live. Every weekday at 22:30 UTC a GitHub Actions job
+            downloads the ETF prices (Yahoo Finance) and the implied volatility indices (FRED), rebuilds the
+            features with the same R functions as the study, applies the five models frozen at the start of
+            2026 and republishes this page. The frozen models are the 2026 walk-forward models: trained on data
+            up to 2 December 2025, whose 21-day outcomes were known on 2 January 2026, the first day they
+            forecast. They reproduce the published 2026 forecasts exactly, and a test checks that no live
+            forecast uses data published after its date.</p>
+          <p>The headline model is HAR for every commodity except crude oil, where the Lasso with OVX is the
+            only model that beat HAR significantly out of sample. If a download fails, the job keeps the last
+            snapshot and the page says so. The models are refitted once a year, in January.</p>
+        </details>
+        <details>
           <summary>Limitations</summary>
           <ul>
             <li>Overlapping 21-day targets leave about 120 independent observations per commodity
@@ -435,6 +514,7 @@
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
 <script src="js/hero.js"></script>
+<script src="js/live.js"></script>
 <script src="js/story.js"></script>
 <script src="js/lab.js"></script>
 <script src="js/simulator.js"></script>

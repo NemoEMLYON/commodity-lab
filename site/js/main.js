@@ -17,6 +17,8 @@
       if (!res.ok) throw new Error(`Could not load data/${n}.json (${res.status})`);
       out[n] = await res.json();
     }));
+    // live.json is rewritten every weekday; the rest of the page works without it.
+    out.live = await fetch("data/live.json").then(r => r.ok ? r.json() : null).catch(() => null);
     return out;
   }
 
@@ -196,6 +198,7 @@
   });
 
   document.querySelector(".data-date").textContent = longDate(data.meta.sample_end);
+  if (window.Live) window.Live.init(data.live, assets, { pct, colors, longDate });
   if (window.Story) window.Story.init(data, { pct, colors });
   if (window.Lab) window.Lab.init(data, { pct, colors, longDate });
   if (window.SimUI) window.SimUI.init(data, { pct, colors });

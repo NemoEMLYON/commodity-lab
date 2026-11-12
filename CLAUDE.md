@@ -26,6 +26,11 @@ Course: "Machine Learning with R", emlyon. Mid-project oral: 2026-12-31
 - Never call code working without running it and showing the output.
 - Sessions of 60–90 min, one deliverable announced at the start. At the end:
   update `PROJECT_LOG.md` (done / next / decisions / open issues) and commit.
+- Writing files to the PC: stage each delivery under a NEW folder
+  (outputs/deliver-<time>/...), then read the files back and diff them.
+  In S14, re-sending from a path already used wrote the OLD content while
+  reporting success (02_features.R, 09_live.R, live.js, PROJECT_LOG.md,
+  CLAUDE.md); a fresh path fixed it.
 - Execution: Claude writes files into the project folder; the student runs
   them in VS Code (R terminal) and pastes outputs. Claude's cloud workspace
   has R but no access to Yahoo, FRED or EIA, so it can only test logic
@@ -42,7 +47,8 @@ Course: "Machine Learning with R", emlyon. Mid-project oral: 2026-12-31
   the source's own date. Never edited. Ignored by Git (re-downloadable,
   third-party terms).
 - `data/processed/`: derived data. Ignored by Git for now.
-- The app never calls the network: it reads precomputed `.rds`/JSON files.
+- The site never calls the network: it reads precomputed JSON files. Only
+  the daily job (`live.R` on GitHub Actions) downloads data, see Live layer.
 - Secrets (`EIA_API_KEY`, `FRED_API_KEY`) live in `.Renviron`, ignored by
   Git; `.Renviron.example` documents the variables.
 - Packages are pinned with renv (`renv.lock`). Few dependencies; every new
@@ -120,6 +126,10 @@ Course: "Machine Learning with R", emlyon. Mid-project oral: 2026-12-31
     prices in 2012–2016 bias its realised vol downward in the early training
     years; the out-of-sample period (2017+) is mostly clean. Robustness check
     planned: results without CPER, and CPER trained from 2016 only.
+15. **Live inference, offline training** (S14): models are trained only by
+    pipeline.R; `freeze_models.R` saves the last walk-forward year's models
+    (FROZEN_YEAR = 2026) in `models/frozen_models.rds` (versioned). The daily
+    job only downloads, predicts and publishes. Refit once a year, in January.
 
 ## Modelling table (`data/processed/features.rds`, built by 02_features.R)
 
@@ -235,11 +245,42 @@ implied vol same day).
   Manrope (text), IBM Plex Mono (numbers, tickers, axes).
 - Local preview needs a local server (fetch of JSON fails on file://):
   VS Code "Live Server" extension, or `python -m http.server` in `site/`.
-- Sections: hero, materials, findings, lab, simulator, method. The
-  simulator data is lazy-loaded near its section. Downloads: derived CSVs
+- Sections: hero (with a live strip), today, materials, findings, lab,
+  simulator, method. The simulator data is lazy-loaded near its section. Downloads: derived CSVs
   in `site/data/csv/` (written by `export_site_csv()`).
 - Deployment: GitHub Pages through `.github/workflows/pages.yml` (runs the
   JS simulator test, then publishes `site/`). Pages source = GitHub Actions.
+
+## Live layer (09_live.R, freeze_models.R, live.R, decided in S14)
+
+- Frozen models: naive, EWMA, HAR, lasso_b2_iv, rf_b2_iv (min node 200), per
+  asset, refitted on exactly the 2026 walk-forward training rows. T0 = last
+  training date (2025-12-02, confirmed: gap 0 on 885 days x 5 models);
+  first live forecast = first trading day of 2026 (2026-01-02) (the model needs the 21-day outcomes
+  of its training rows, known only then: starting at T0 + 1 would be a
+  look-ahead). `check_frozen()` must give gap 0 vs predictions.rds.
+- Live sources: 5 ETF prices (Yahoo) + VIXCLS / OVXCLS / GVZCLS from FRED's
+  public CSV export (fredgraph.csv, no key; same series and next-day rule as
+  training; the API with FRED_API_KEY is the fallback: in S14 the API
+  refused VIXCLS while the export worked). Full history is downloaded so the
+  22-day windows and the EWMA match the pipeline. EIA, weather, GPR, dollar:
+  not downloaded (they only feed B3/B4 models, which are not served).
+- Features: `build_features(raw, external = implied_vol_columns)`, the same
+  code path as the pipeline (refactor checked by all existing tests).
+- Fallback: download (2 attempts, 10 s timeout) -> last live snapshot
+  (`data/processed/live_snapshot.rds`, kept between runs by actions/cache)
+  -> pipeline cache (data/raw) -> previous live.json marked offline.
+  `LIVE_DISABLED=1` forces offline mode.
+- Headline model per asset: HAR, except oil (Lasso + OVX). 80% interval:
+  lognormal, log vol ~ N(pred, resid_var).
+- Track record since the first live day: QLIKE / HAR, RMSE, 80% interval
+  coverage; the last 21 days are pending.
+- GitHub Actions `.github/workflows/live.yml`: weekdays 22:30 UTC, R 4.6.1 +
+  renv, optional secret FRED_API_KEY, commits `site/data/live.json`, then deploys
+  Pages itself (a push by the job's token does not trigger pages.yml).
+- Site: section `#today` (js/live.js): status badge (live / offline /
+  stale after 3 weekdays without update), five readouts, forecast vs outcome
+  chart with pending zone, live record, freshness table, disclaimer.
 
 ## Known limitations
 
