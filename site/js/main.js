@@ -243,5 +243,6 @@
   if (window.SimUI) window.SimUI.init(data, { pct, colors });
   select("gold", false);
   startHeroCycle();
+  if (window.Glass) window.Glass.init();       // glass controls, floating nav
   if (window.Motion) window.Motion.init();     // after the content is built
 })();

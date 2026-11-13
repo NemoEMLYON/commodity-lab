@@ -87,6 +87,12 @@ Newest session first. Each entry: done / next / decisions / open issues.
   symptom). Now the metal moves gently in that mode (time x0.35): checked
   with an emulated setting, 21% of the object's pixels change in 3 s vs 43%
   without the setting.
+- Liquid glass (js/glass.js): floating glass nav pill, hero strip and
+  material label, map badge and tooltip; real refraction in Chrome/Edge via
+  per-element SVG displacement filters, frosted fallback elsewhere.
+  Verified on a striped test page (lens bending at the rounded ends, colour
+  fringes); two bugs found there: displacement sign, and outer shadows
+  shifting the filter box (removed from refracting glass).
 - Real weather_map.json (export_site.R on the PC): 824 weeks, 2011-01-07
   to 2026-10-16; gas_dev empty for the first 104 weeks (starts 2013, as
   documented). Coldest weeks vs usual (10-city mean): 2015-02-20 +19.4,

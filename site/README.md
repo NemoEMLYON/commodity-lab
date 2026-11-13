@@ -23,6 +23,7 @@ js/main.js        loads the data, builds the cards and the D3 chart, starts the 
 js/live.js        "Today" section: tonight's forecasts (data/live.json, updated daily)
 js/motion.js      scroll choreography (GSAP ScrollTrigger + SplitText)
 js/weathermap.js  Findings chapter 05: 3D weather map (three.js, loaded when near)
+js/glass.js       liquid glass on floating controls (SVG refraction in Chromium)
 js/story.js       findings section (risk bars, timeline, 2x2, heatmap)
 js/lab.js         the lab: forecasts vs outcome, scores, horizon panel
 js/simulator.js   JS port of the R backtest (also runs in Node)

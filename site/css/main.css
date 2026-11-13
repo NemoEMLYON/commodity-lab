@@ -1024,3 +1024,109 @@ a { color: inherit; }
   .wm-label { font-size: 0.6rem; }
   .wm-label span { display: none; }      /* names only: values in the tooltip and panel */
 }
+
+
+/* ---- Liquid glass (js/glass.js) --------------------------------------------------- */
+/* For floating controls only, never for content. Chromium gets real refraction
+   (an SVG filter set inline by glass.js); other browsers keep this frosted look. */
+
+.glass {
+  position: relative;
+  isolation: isolate;
+  border: 1px solid rgba(255, 244, 224, 0.16);
+  background: linear-gradient(180deg, rgba(255, 248, 235, 0.10), rgba(255, 248, 235, 0.03));
+  /* No outer shadow on refracting glass: in Chrome any shadow that overflows
+     the element (even a pseudo-element's) enlarges the box the backdrop
+     filter is computed on and shifts the refraction (checked on a striped
+     test page). Only the frosted fallback gets a lift shadow (below). */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.30),          /* top specular line */
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 0 22px rgba(255, 240, 215, 0.06);          /* inner glow */
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  backdrop-filter: blur(14px) saturate(150%);
+}
+.glass.is-refracting { background: linear-gradient(180deg, rgba(255, 248, 235, 0.07), rgba(255, 248, 235, 0.015)); }
+/* Bright rim, strongest top-left and bottom-right, like light on a bevel */
+.glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 32%,
+                              rgba(255, 255, 255, 0) 68%, rgba(255, 255, 255, 0.22));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+/* Specular highlight that follows the pointer */
+.glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(180px circle at var(--gx, 30%) var(--gy, 0%), rgba(255, 250, 238, 0.16), transparent 62%);
+  pointer-events: none;
+  z-index: -1;
+}
+.glass:not(.is-refracting) { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.30), inset 0 0 22px rgba(255, 240, 215, 0.06),
+                                         0 12px 32px rgba(0, 0, 0, 0.38); }
+
+/* Navigation: full width at the top, hidden while the hero leaves, then a pill */
+.site-nav { position: fixed; transition: opacity 0.3s, transform 0.4s var(--ease-out), padding 0.4s var(--ease-out); }
+.site-nav.is-hidden { opacity: 0; transform: translateY(-110%); pointer-events: none; }
+.site-nav:not(.is-floating) .wrap { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+.site-nav.is-floating { padding-top: calc(env(safe-area-inset-top, 0px) + 12px); }
+.site-nav.is-floating .wrap {
+  width: fit-content;
+  max-width: calc(100% - 32px);
+  align-items: center;
+  gap: var(--s-4);
+  padding: 0.6rem 0.8rem 0.6rem 1.2rem;
+  border-radius: 999px;
+  overflow: hidden;
+  animation: nav-in 0.6s var(--ease-out);
+}
+.site-nav.is-floating .brand { font-size: 0.85rem; white-space: nowrap; }
+.site-nav.is-floating nav a { color: var(--bone); opacity: 0.78; }
+.site-nav.is-floating nav a:hover { opacity: 1; }
+.site-nav .scroll-progress { left: 1.2rem; right: 1.2rem; opacity: 0; transition: opacity 0.3s; }
+.site-nav.is-floating .scroll-progress { opacity: 1; }
+@keyframes nav-in { from { transform: translateY(-140%); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* Hero controls in glass */
+.live-strip.glass { border-radius: 16px; padding: 0.7rem 1.1rem; background-color: transparent; }
+.hero-material.glass { position: absolute; padding: 0.7rem 1.1rem; border-radius: 16px; }   /* .glass sets relative */
+
+/* Map: a glass badge on the scene, and a glass tooltip */
+.wm-badge {
+  position: absolute;
+  right: var(--s-3);
+  top: var(--s-3);
+  justify-items: end;
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.7rem 1rem;
+  border-radius: 16px;
+  pointer-events: none;
+}
+.wm-badge-week { font-size: 0.72rem; color: var(--ash); }
+.wm-badge-agg { font-size: var(--step-1); font-weight: 500; color: var(--bone); }
+.wm-tip.glass { position: absolute; border-radius: 12px; background-color: transparent; }
+
+@media (max-width: 760px) {
+  .hero-material.glass { position: static; }
+  .site-nav.is-floating .brand { display: none; }
+  /* One line that scrolls sideways (earlier phone rules make the nav wrap) */
+  .site-nav.is-floating .wrap { flex-wrap: nowrap; width: calc(100% - 32px); padding: 0.55rem 1rem; }
+  .site-nav.is-floating nav { flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; overflow-x: auto;
+                              scrollbar-width: none; gap: var(--s-3); white-space: nowrap; }
+  .site-nav.is-floating nav::-webkit-scrollbar { display: none; }
+  .site-nav.is-floating nav a { flex: none; }
+  .wm-badge { right: var(--s-2); top: var(--s-2); padding: 0.5rem 0.75rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-nav.is-floating .wrap { animation: none; }
+}

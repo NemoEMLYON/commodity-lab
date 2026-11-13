@@ -56,7 +56,7 @@
   function progressLine() {
     const bar = document.createElement("div");
     bar.className = "scroll-progress";
-    document.querySelector(".site-nav").appendChild(bar);
+    document.querySelector(".site-nav .wrap").appendChild(bar);
     gsap.to(bar, { scaleX: 1, ease: "none",
                    scrollTrigger: { trigger: document.body, start: "top top", end: "bottom bottom", scrub: 0.3 } });
   }

@@ -16,7 +16,7 @@
 <a class="skip-link" href="#materials">Skip to the content</a>
 
 <header class="site-nav">
-  <div class="wrap">
+  <div class="wrap" data-glass>
     <a class="brand" href="#top">Liquid Commodities Lab</a>
     <nav aria-label="Main">
       <a href="#today" class="nav-live"><span class="live-dot" aria-hidden="true"></span>Today</a>
@@ -49,14 +49,14 @@
         about 20% against the HAR benchmark.</p>
       <div class="hero-actions">
         <a class="cta" href="#materials">Explore the five materials</a>
-        <div class="live-strip" hidden>
+        <div class="live-strip glass" data-glass hidden>
           <a class="live-strip-label" href="#today"><span class="live-dot" aria-hidden="true"></span>Tonight's forecast, next 21 days</a>
           <span class="live-strip-items" role="group" aria-label="Show a commodity"></span>
         </div>
       </div>
     </div>
 
-    <p class="hero-material" aria-hidden="true"><b class="hm-name"></b><span class="hm-note"></span></p>
+    <p class="hero-material glass" data-glass aria-hidden="true"><b class="hm-name"></b><span class="hm-note"></span></p>
     <p class="hero-caption">Lines: 22-day realised volatility of the five ETFs, 2011–2026,
       log scale. Prices from Yahoo Finance, computed in R.</p>
   </section>
@@ -264,7 +264,8 @@
           <div class="wm-stage">
             <canvas class="wm-canvas" aria-label="3D map of the Northeast and Midwest with one pillar per city showing heating demand for the selected week"></canvas>
             <div class="wm-labels" aria-hidden="true"></div>
-            <div class="wm-tip lab-tip" hidden></div>
+            <div class="wm-tip lab-tip glass" data-glass hidden></div>
+            <div class="wm-badge glass" data-glass aria-hidden="true"><span class="wm-badge-week num"></span><b class="wm-badge-agg num"></b></div>
             <p class="wm-hint">Drag to turn the map · hover a pillar</p>
             <p class="wm-loading">Loading the map</p>
           </div>
@@ -579,6 +580,7 @@
 <script src="js/simulator.js"></script>
 <script src="js/sim-ui.js"></script>
 <script src="js/weathermap.js"></script>
+<script src="js/glass.js"></script>
 <script src="js/motion.js"></script>
 <script src="js/main.js"></script>
 </body>

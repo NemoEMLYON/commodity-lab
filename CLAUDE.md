@@ -273,6 +273,16 @@ implied vol same day).
   the pipeline's own helpers; mean of city anomalies = hdd_anomaly, tested).
   Text: block B4 (HDD + storage + dollar) did not lower natural gas loss
   (Lasso 1.27x HAR before and after, forest 1.23 -> 1.32).
+- Liquid glass (js/glass.js, S14): only on floating controls, never on
+  content (Apple's rule): floating nav pill after the hero (hidden while the
+  hero scrolls away), hero forecast strip, hero material label, map badge
+  and tooltip. Chromium: per-element SVG filter in backdrop-filter, built
+  from a displacement map of the element's exact rounded shape (bevel 16
+  px, strength 26 px, R/G/B at 1/1.06/1.12 = slight dispersion, saturate
+  1.45); others: frosted blur fallback. Pitfalls found on a striped test
+  page: (1) the displacement scale must be POSITIVE (negative samples
+  outside the pane: dark bands); (2) NO outer box-shadow on refracting
+  glass, even on a pseudo-element: it shifts Chrome's filter box.
 - Selectors: always scope to the section (`#materials .chart`): several
   sections have `.chart` / `.tooltip` (bug in S14: the materials chart was
   drawn into the Today chart).

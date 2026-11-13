@@ -92,6 +92,10 @@
 
   function panel(i) {
     $(".wm-week").textContent = weekLabel(wm.weeks[i]);
+    $(".wm-badge-week").textContent = new Date(`${wm.weeks[i]}T00:00:00Z`).toLocaleDateString("en-GB",
+      { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+    $(".wm-badge-agg").textContent = wm.agg_anomaly[i] === null ? "" :
+      `${fmtSigned(wm.agg_anomaly[i], "")} HDD ${wm.agg_anomaly[i] >= 0 ? "colder" : "milder"}`;
     const agg = wm.agg_anomaly[i], gas = wm.gas_dev[i], vol = wm.ung_vol[i];
     $('[data-k="agg"]').textContent = agg === null ? "–" : `${fmtSigned(agg, "")} HDD ${agg >= 0 ? "colder" : "milder"}`;
     $('[data-k="gas"]').textContent = gas === null ? "–" : fmtSigned(gas * 100, "%");
