@@ -81,6 +81,12 @@ Newest session first. Each entry: done / next / decisions / open issues.
   took the whole globe) and a zero-length segment in the simplifier (closed
   rings collapsed to 2 points: Georgia, Alabama...). Checked on desktop,
   phone and without WebGL (flat fallback); no errors, no overflow.
+- "The material does not move": the student's Windows has Accessibility >
+  Visual effects > Animation effects off, i.e. prefers-reduced-motion, which
+  froze the metal (and, before, limited it to 4 fps: the original "jerky"
+  symptom). Now the metal moves gently in that mode (time x0.35): checked
+  with an emulated setting, 21% of the object's pixels change in 3 s vs 43%
+  without the setting.
 - Real weather_map.json (export_site.R on the PC): 824 weeks, 2011-01-07
   to 2026-10-16; gas_dev empty for the first 104 weeks (starts 2013, as
   documented). Coldest weeks vs usual (10-city mean): 2015-02-20 +19.4,

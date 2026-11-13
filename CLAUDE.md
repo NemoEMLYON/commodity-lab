@@ -243,8 +243,10 @@ implied vol same day).
   60% turbulent), cursor sphere on a time-based spring (K 70, C 11) with
   the cursor unprojected onto the object's plane (reach 0.85), adaptive
   resolution (starts at 75%, 40-100%). The hero cycles through the five
-  materials until the visitor picks one. CSS fallback, static under
-  prefers-reduced-motion. Benchmark (software GL, 1440x900): 12 -> 25 fps.
+  materials until the visitor picks one. CSS fallback. Under
+  prefers-reduced-motion the metal still moves, slowly (time x0.35, smaller
+  wander; the student's Windows has "Animation effects" off, which froze it);
+  intro, scroll effects, hero cycle and map fly-in stay off. Benchmark (software GL, 1440x900): 12 -> 25 fps.
 - Scroll (js/motion.js): hero exit parallax, heading lines rising from a
   mask (SplitText), staggered panels, progress line under the nav. Nothing
   hidden in CSS: without JS or with reduced motion everything is visible.

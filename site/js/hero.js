@@ -13,6 +13,11 @@
   "use strict";
 
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // With "reduce motion" on (Windows: Accessibility > Visual effects >
+  // Animation effects off), the metal still moves, slowly and gently: time
+  // runs at a third of its speed and the wandering is smaller. The intro and
+  // the scroll effects stay off.
+  const CALM = reduceMotion ? 0.35 : 1;
   const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
 
   // ---- 1. Volatility traces ------------------------------------------------
@@ -292,14 +297,15 @@
   // sine waves per axis with unrelated periods, so the path never repeats.
   const IDLE_AFTER = 1500;   // ms without mouse movement
   function wander(sec) {
-    return [0.42 * Math.sin(sec * 0.37) + 0.22 * Math.sin(sec * 0.93 + 1.7),
-            0.30 * Math.cos(sec * 0.29) + 0.16 * Math.sin(sec * 1.17 + 0.4),
+    const a = reduceMotion ? 0.6 : 1;
+    return [a * (0.42 * Math.sin(sec * 0.37) + 0.22 * Math.sin(sec * 0.93 + 1.7)),
+            a * (0.30 * Math.cos(sec * 0.29) + 0.16 * Math.sin(sec * 1.17 + 0.4)),
             REST[2]];
   }
 
   function step(dt) {
     const now = performance.now();
-    if (now - metal.lastPointer > IDLE_AFTER) metal.target = wander((now - metal.start) / 1000);
+    if (now - metal.lastPointer > IDLE_AFTER) metal.target = wander(CALM * (now - metal.start) / 1000);
     for (let i = 0; i < 2; i++) {
       const force = K * (metal.target[i] - metal.pos[i]) - C * metal.vel[i];
       metal.vel[i] += force * dt;
@@ -324,8 +330,8 @@
     metal.last = now;
     const { gl, canvas, uniforms } = metal;
 
-    if (metal.visible || reduceMotion) {
-      if (!reduceMotion) step(dt); else { metal.pos = REST.slice(); metal.now = Object.assign({}, metal.goal); }
+    if (metal.visible) {
+      step(dt);
       const base = window.innerWidth < 760 ? 0.75 : 1;   // lighter on phones
       const scale = dpr * base * metal.scale;
       const w = Math.round(canvas.clientWidth * scale), h = Math.round(canvas.clientHeight * scale);
@@ -333,7 +339,7 @@
       const m = metal.now;
       gl.viewport(0, 0, w, h);
       gl.uniform2f(uniforms.u_res, w, h);
-      gl.uniform1f(uniforms.u_time, reduceMotion ? 4.0 : (now - metal.start) / 1000);
+      gl.uniform1f(uniforms.u_time, CALM * (now - metal.start) / 1000);
       gl.uniform3f(uniforms.u_pull, metal.pos[0], metal.pos[1], REST[2]);
       gl.uniform2f(uniforms.u_vel, metal.vel[0], metal.vel[1]);
       gl.uniform3f(uniforms.u_tint, m.tint0, m.tint1, m.tint2);
@@ -343,8 +349,7 @@
       gl.uniform1f(uniforms.u_irid, m.irid);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     }
-    if (!reduceMotion) requestAnimationFrame(frame);
-    else setTimeout(() => requestAnimationFrame(frame), 250);   // still follow material changes
+    requestAnimationFrame(frame);
   }
 
 
