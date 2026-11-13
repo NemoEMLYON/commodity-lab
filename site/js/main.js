@@ -218,7 +218,9 @@
     if (strip) {
       strip.addEventListener("pointerenter", () => { cycle.hold = true; });
       strip.addEventListener("pointerleave", () => { cycle.hold = false; });
-      strip.addEventListener("focusin", () => { cycle.hold = true; });
+      // Keyboard focus only: a mouse click also focuses the button, which
+      // would keep the cycle paused after the pointer has left.
+      strip.addEventListener("focusin", e => { if (e.target.matches(":focus-visible")) cycle.hold = true; });
       strip.addEventListener("focusout", () => { cycle.hold = false; });
     }
     const tick = now => {
@@ -257,6 +259,50 @@
   }
   window.selectMaterial = select;
 
+  // Top navigation: the link of the section in view turns yellow
+  // (aria-current). The section in view is the last one whose top has passed
+  // 35% of the window height. A click marks its link at once and holds it
+  // while the page scrolls there, so the links in between do not flash.
+  function navSpy() {
+    const links = [...document.querySelectorAll('.site-nav nav a[href^="#"]')];
+    const sections = links.map(a => document.querySelector(a.getAttribute("href"))).filter(Boolean);
+    let clicked = null, clickTimer, ticking = false;
+    const nav = document.querySelector(".site-nav nav");
+    let shown = null;
+    const mark = id => {
+      if (id === shown) return;
+      shown = id;
+      links.forEach(a => {
+        if (a.getAttribute("href") === `#${id}`) a.setAttribute("aria-current", "true");
+        else a.removeAttribute("aria-current");
+      });
+      // Phones: the nav row scrolls sideways; bring the active link into it.
+      const active = nav.querySelector('[aria-current="true"]');
+      if (active && nav.scrollWidth > nav.clientWidth) {
+        nav.scrollTo({ left: active.offsetLeft - (nav.clientWidth - active.offsetWidth) / 2, behavior: reduceMotion ? "auto" : "smooth" });
+      }
+    };
+    const update = () => {
+      ticking = false;
+      if (clicked) return;
+      const line = window.innerHeight * 0.35;
+      let inView = null;
+      sections.forEach(sec => { if (sec.getBoundingClientRect().top <= line) inView = sec.id; });
+      mark(inView);
+    };
+    window.addEventListener("scroll", () => {
+      if (clicked) { clearTimeout(clickTimer); clickTimer = setTimeout(() => { clicked = null; update(); }, 200); }
+      if (!ticking) { ticking = true; requestAnimationFrame(update); }
+    }, { passive: true });
+    links.forEach(a => a.addEventListener("click", () => {
+      clicked = a.getAttribute("href").slice(1);
+      mark(clicked);
+      clearTimeout(clickTimer);
+      clickTimer = setTimeout(() => { clicked = null; update(); }, 1200);   // in case nothing scrolls
+    }));
+    update();
+  }
+
   let resizeTimer;
   window.addEventListener("resize", () => {
     clearTimeout(resizeTimer);
@@ -268,9 +314,10 @@
   if (window.Story) window.Story.init(data, { pct, colors });
   if (window.WeatherMap) window.WeatherMap.init(data, { pct });   // loads when near
   if (window.Lab) window.Lab.init(data, { pct, colors, longDate });
-  if (window.SimUI) window.SimUI.init(data, { pct, colors });
+  if (window.SimUI) window.SimUI.init(data, { pct, colors, longDate });
   select("gold", false);
   startHeroCycle();
+  navSpy();
   if (window.Glass) window.Glass.init();       // glass controls, floating nav
   if (window.Motion) window.Motion.init();     // after the content is built
 })();

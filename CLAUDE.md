@@ -110,7 +110,10 @@ Course: "Machine Learning with R", emlyon. Mid-project oral: 2026-12-31
 11. **HDD cities**: 10 Northeast/Midwest metros (+ Atlanta), equal weights
     (simplification, documented). Base 65°F. Anomaly vs the same calendar
     day in previous years only (no look-ahead).
-12. **Site typeface** (changed in S14): Gloock, SIL OFL 1.1, versioned in
+12. **Site typeface** (changed in S15): GFS Didot (Greek Font Society, free
+    Didot revival; the Linotype "Didot" the student asked for is commercial
+    and cannot be served by a website). Before: Gloock (S14). SIL OFL 1.1,
+    versioned in
     `site/assets/fonts/` with its licence; headings in capitals. Chosen by
     the student among 6 OFL faces rendered on the hero (One Slice felt
     "Halloween" and its licence did not cover a public site; `font/` stays
@@ -247,7 +250,7 @@ implied vol same day).
   as its shape; a 2px bar under the current hero-strip button fills over
   the 5 s (CSS var --progress, colour of the commodity). A click jumps to
   that commodity and restarts its 5 s; the cycle pauses while the pointer
-  or keyboard focus is on the strip, when the hero is off screen and when
+  or keyboard focus (:focus-visible, not a click) is on the strip, when the hero is off screen and when
   the tab is hidden. Each commodity takes its shape (S14, student's choices): gold ingot, oil
   barrel, copper wire coil, gas bottle, corn cob with husk leaves; all
   signed distance functions in the same shader, blended with the liquid
@@ -270,7 +273,7 @@ implied vol same day).
   hidden in CSS: without JS or with reduced motion everything is visible.
 - Design brief: `Creative Direction/*.docx` (dark warm base, champagne
   gold / copper accents, one material per commodity, purposeful motion,
-  data first). Typefaces: Gloock (display, capitals, headlines),
+  data first). Typefaces: GFS Didot (display, capitals, headlines),
   Manrope (text), IBM Plex Mono (numbers, tickers, axes).
 - Local preview needs a local server (fetch of JSON fails on file://):
   VS Code "Live Server" extension, or `python -m http.server` in `site/`.
@@ -301,6 +304,19 @@ implied vol same day).
   page: (1) the displacement scale must be POSITIVE (negative samples
   outside the pane: dark bands); (2) NO outer box-shadow on refracting
   glass, even on a pseudo-element: it shifts Chrome's filter box.
+- Never put a CSS `transition` on `transform` for an element that GSAP
+  animates (motion.js entrance): the transition fought GSAP and left the
+  Today cards stuck 36 px low, over the legend (S15). Hover lifts use the
+  separate `translate` property.
+- Top nav (main.js navSpy): the link of the section in view is yellow
+  (--amber) with a short underline, aria-current="true"; section in view =
+  last one whose top passed 35% of the window; a click marks its link at
+  once and holds it during the smooth scroll. On phones the nav row
+  scrolls to the active link.
+- Today readouts: "Since last week" green when the forecast rose
+  (--better), red when it fell (--worse), as the student asked.
+- Simulator charts: hover (or tap) shows a line, a dot per series and a
+  tooltip with the date and values; both charts follow the same day.
 - Selectors: always scope to the section (`#materials .chart`): several
   sections have `.chart` / `.tooltip` (bug in S14: the materials chart was
   drawn into the Today chart).

@@ -2,6 +2,32 @@
 
 Newest session first. Each entry: done / next / decisions / open issues.
 
+## S15 — 2026-11-13 — Site polish: Didot, active nav, colours, simulator hover
+
+**Done** (student's list)
+- Typeface: GFS Didot (free Didot revival, SIL OFL, from the Fontsource
+  package, latin subset 15 KB) replaces Gloock. The Linotype "Didot" is a
+  commercial font, so it cannot be put on the site.
+- Top nav: the link of the section in view turns yellow with a short line
+  under it, on scroll and on click; on phones the nav row scrolls to it.
+  Tested: Lab / Today / Materials / Simulator follow the scroll, nothing
+  marked on the hero.
+- Today: "Since last week" in green (up) and red (down).
+- Bug (student): text hidden by the five Today cards. Cause: a CSS
+  transition on `transform` (hover lift) fought GSAP's entrance animation,
+  so the cards stayed 36 px low, over the legend. Fixed with the separate
+  `translate` property (measured: offset 0, legend clear). Same fix on the
+  Materials cards. Also: the stats rows no longer wrap at 1280 px (no
+  overflow from 390 to 1536 px).
+- Simulator: hovering a chart shows the date, held and steered values
+  (and the target); both charts follow the same day; tap works on phones.
+- Hero cycle: a mouse click focused the button and kept the cycle paused;
+  only keyboard focus pauses it now.
+
+**Next**
+- Scratch Lasso (validated against glmnet); update the PDF guide before the
+  oral.
+
 ## S14 — 2026-11-12 — Live layer: offline training, live inference
 
 **Done**
@@ -110,7 +136,10 @@ Newest session first. Each entry: done / next / decisions / open issues.
   or focus, hero off screen, hidden tab; off under reduced motion. Morph
   sped up (rate 2.4 -> 4.5). Tested headless: gold -> oil -> copper in
   order, click resets the bar, hover freezes it, no page errors; strip
-  checked on desktop and phone.
+  checked on desktop and phone. Follow-up fix: a mouse click also gives
+  the button focus, which kept the cycle paused after the pointer left;
+  only keyboard focus (:focus-visible) pauses it now. Tested with a click
+  (desktop) and a tap (emulated Pixel 7): the bar restarts and fills.
 - Liquid glass (js/glass.js): floating glass nav pill, hero strip and
   material label, map badge and tooltip; real refraction in Chrome/Edge via
   per-element SVG displacement filters, frosted fallback elsewhere.

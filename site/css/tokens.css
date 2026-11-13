@@ -4,11 +4,14 @@
    material cards and one large chart that follows the selection.
    Single dark look by design (creative brief: dark, warm, cinematic). */
 
-/* Display face: Gloock (The Gloock Project Authors), SIL Open Font License
-   1.1, licence in assets/fonts/Gloock-OFL.txt. Latin subset. */
+/* Display face: GFS Didot (Greek Font Society, Takis Katsoulidis and George D.
+   Matthiopoulos), SIL Open Font License 1.1, licence in
+   assets/fonts/GFSDidot-OFL.txt. A free Didot revival: the Linotype "Didot"
+   is a commercial font that cannot be shipped on a website. Latin subset,
+   from the Fontsource package @fontsource/gfs-didot 5.3.0. */
 @font-face {
-  font-family: "Gloock";
-  src: url("../assets/fonts/Gloock-Regular.woff2") format("woff2");
+  font-family: "GFS Didot";
+  src: url("../assets/fonts/GFSDidot-Regular.woff2") format("woff2");
   font-weight: 400;
   font-display: swap;
 }
@@ -40,7 +43,7 @@
   --worse: #c96d55;
 
   /* Type: display (headlines only), text, data */
-  --font-display: "Gloock", "Bodoni Moda", Georgia, serif;
+  --font-display: "GFS Didot", "Didot", "Bodoni Moda", Georgia, serif;
   --font-body: "Manrope", "Segoe UI", system-ui, sans-serif;
   --font-data: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
 
@@ -50,7 +53,7 @@
   --step-1: 1.25rem;
   --step-2: 1.625rem;
   --step-3: clamp(2.25rem, 5vw, 3.5rem);
-  --step-hero: clamp(2.5rem, 8.2vw, 8.75rem);   /* Gloock is wide: ~8.6 em for "THE MATERIAL" */
+  --step-hero: clamp(2.5rem, 8.2vw, 8.75rem);   /* display face in capitals */
 
   /* Space */
   --s-1: 0.5rem;

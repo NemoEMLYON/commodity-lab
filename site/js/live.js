@@ -78,9 +78,10 @@
       const lo = Math.min(t.lo80, t.last_month_vol) * 0.8;
       const hi = Math.max(t.hi80, t.last_month_vol) * 1.2;
       const change = t.week_ago_vol ? t.forecast_vol - t.week_ago_vol : null;
-      const arrow = change === null ? "" : change > 0.0005 ? "▲" : change < -0.0005 ? "▼" : "▶";
+      const dir = change === null ? "" : change > 0.0005 ? "up" : change < -0.0005 ? "down" : "flat";
+      const arrow = { up: "▲", down: "▼", flat: "▶", "": "" }[dir];
       const changeText = change === null ? "–" :
-        `${arrow} ${change >= 0 ? "+" : "−"}${Math.abs(change * 100).toFixed(1)} pts`;
+        `${arrow}\u2009${change >= 0 ? "+" : "−"}${Math.abs(change * 100).toFixed(1)} pts`;
       const above = Math.round(t.percentile * 100);
       return `
       <button class="readout" type="button" data-asset="${t.id}" aria-pressed="false"
@@ -100,7 +101,7 @@
         <span class="ro-range num">80% range ${h.pct(t.lo80, 0)}–${h.pct(t.hi80, 0)}</span>
         <dl class="card-stats">
           <div><dt>Last 22 days</dt><dd>${h.pct(t.last_month_vol)}</dd></div>
-          <div><dt>Since last week</dt><dd>${changeText}</dd></div>
+          <div><dt>Since last week</dt><dd class="ro-change is-${dir || "none"}">${changeText}</dd></div>
           <div><dt>Higher than</dt><dd>${above}% of months</dd></div>
           <div><dt>Hold at 10% risk</dt><dd>${t.weight_10.toFixed(2)}×</dd></div>
         </dl>

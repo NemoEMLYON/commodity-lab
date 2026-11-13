@@ -86,7 +86,52 @@
       svg.append("text").attr("class", "label").attr("x", width - m.right + 6).attr("y", y(last[1]) + 4)
         .attr("fill", s.color).text(s.name);
     });
+
+    // Hover: a vertical line, a dot on each line and the values of that day.
+    // show(i) / hide() are returned so the two charts can follow each other.
+    let tip = box.querySelector(".tooltip");
+    if (!tip) {
+      tip = document.createElement("div");
+      tip.className = "tooltip lab-tip";
+      tip.hidden = true;
+      box.appendChild(tip);
+    }
+    const rule = svg.append("line").attr("class", "hover-line").attr("y1", m.top).attr("y2", height - m.bottom).attr("opacity", 0);
+    const dots = series.map(s => svg.append("circle").attr("r", 4).attr("fill", s.color)
+      .attr("stroke", "var(--obsidian)").attr("stroke-width", 2).attr("opacity", 0));
+    const fmt = opts.tipFormat || opts.format;
+    const show = i => {
+      const px = x(dates[i]);
+      rule.attr("x1", px).attr("x2", px).attr("opacity", 1);
+      series.forEach((s, k) => {
+        const v = s.values[i];
+        const ok = Number.isFinite(v) && v > 0;
+        dots[k].attr("cx", px).attr("cy", ok ? y(v) : 0).attr("opacity", ok ? 1 : 0);
+      });
+      tip.hidden = false;
+      tip.style.left = `${Math.min(Math.max((px / width) * 100, 14), 86)}%`;
+      tip.innerHTML = `${h.longDate(dates[i].toISOString().slice(0, 10))}` +
+        series.map(s => {
+          const v = s.values[i];
+          return `<br><i class="tip-key" style="background:${s.color}"></i>${s.name} ` +
+            (Number.isFinite(v) && v > 0 ? fmt(v) : "–");
+        }).join("") +
+        (opts.ref && opts.refTip ? `<br><span class="tip-ref">${opts.refTip}</span>` : "");
+    };
+    const hide = () => { rule.attr("opacity", 0); dots.forEach(d => d.attr("opacity", 0)); tip.hidden = true; };
+    const bisect = d3.bisector(d => d).center;
+    const at = e => {
+      const [mx] = d3.pointer(e);
+      return bisect(dates, x.invert(Math.min(Math.max(mx, m.left), width - m.right)));
+    };
+    svg.on("pointermove pointerdown", e => opts.onHover && opts.onHover(at(e)))
+       .on("pointerleave", () => opts.onHover && opts.onHover(null));
+    return { show, hide };
   }
+
+  // Both charts show the same day under the pointer.
+  let charts = [];
+  function hoverBoth(i) { charts.forEach(c => (i === null ? c.hide() : c.show(i))); }
 
   // ---- Main update -------------------------------------------------------------------
 
@@ -100,16 +145,19 @@
 
     const dates = series.date.map(d => new Date(`${d}T00:00:00Z`));
     const a = data.assets.find(x => x.id === asset);
-    lineChart($("#sim-risk"), dates, [
+    charts = [];
+    charts.push(lineChart($("#sim-risk"), dates, [
       { name: "held", values: held.rollingVol, color: h.colors[asset], opacity: 0.7, width: 1.2 },
       { name: "steered", values: steer.rollingVol, color: "var(--bone)", width: 1.6 }
     ], { format: d => h.pct(d, 0), ref: s.target, refLabel: `target`,
-         label: `${a.name}: 3-month realised volatility, steered with ${MODEL_LABELS[s.model]} versus held as is.` });
-    lineChart($("#sim-wealth"), dates, [
+         tipFormat: d => h.pct(d, 1), refTip: `target ${h.pct(s.target, 0)}`, onHover: hoverBoth,
+         label: `${a.name}: 3-month realised volatility, steered with ${MODEL_LABELS[s.model]} versus held as is.` }));
+    charts.push(lineChart($("#sim-wealth"), dates, [
       { name: "held", values: held.metrics.wealth, color: h.colors[asset], opacity: 0.7, width: 1.2 },
       { name: "steered", values: steer.metrics.wealth, color: "var(--bone)", width: 1.6 }
     ], { format: d => `$${d.toFixed(d < 1 ? 2 : 1)}`, ref: 1, refLabel: "$1",
-         label: `${a.name}: value of 1 dollar invested in January 2017, steered versus held.` });
+         tipFormat: d => `$${d.toFixed(2)}`, onHover: hoverBoth,
+         label: `${a.name}: value of 1 dollar invested in January 2017, steered versus held.` }));
 
     $("#sim-asset-name").textContent = a.name;
     const isDefault = Object.keys(DEFAULTS).every(k => s[k] === DEFAULTS[k]);

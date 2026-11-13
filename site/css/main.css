@@ -68,6 +68,18 @@ a { color: inherit; }
 .site-nav nav { display: flex; gap: var(--s-3); font-size: var(--step--1); }
 .site-nav nav a { text-decoration: none; color: var(--ash); transition: color 0.2s; }
 .site-nav nav a:hover { color: var(--bone); }
+/* Section in view (main.js navSpy): yellow, with a short line under it */
+.site-nav nav a[aria-current="true"] { color: var(--amber); position: relative; }
+.site-nav nav a[aria-current="true"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.3rem;
+  height: 1.5px;
+  border-radius: 1px;
+  background: currentColor;
+}
 
 
 /* ---- Hero -------------------------------------------------------------------- */
@@ -228,9 +240,9 @@ a { color: inherit; }
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: transform 0.4s var(--ease-out), border-color 0.3s, background 0.3s;
+  transition: translate 0.4s var(--ease-out), border-color 0.3s, background 0.3s;   /* translate: see .readout */
 }
-.card:hover { transform: translateY(-4px); }
+.card:hover { translate: 0 -4px; }
 .card[aria-pressed="true"] {
   border-color: var(--card-color);
   background: linear-gradient(180deg, color-mix(in srgb, var(--card-color) 14%, var(--char)), var(--obsidian));
@@ -556,6 +568,8 @@ a { color: inherit; }
 .panel .chart-note { margin: 0; }
 
 .lab-tip { line-height: 1.5; white-space: nowrap; }
+.tip-key { display: inline-block; width: 8px; height: 8px; margin-right: 0.4rem; border-radius: 50%; vertical-align: 0; }
+.tip-ref { color: var(--champagne); }
 
 .lab-grid { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: var(--s-3); }
 
@@ -770,9 +784,12 @@ a { color: inherit; }
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: transform 0.4s var(--ease-out), border-color 0.3s, background 0.3s;
+  /* The hover lift uses `translate`, not `transform`: motion.js animates the
+     cards' transform on entry, and a CSS transition on the same property
+     left them stuck 36px low, over the legend below. */
+  transition: translate 0.4s var(--ease-out), border-color 0.3s, background 0.3s;
 }
-.readout:hover { transform: translateY(-4px); }
+.readout:hover { translate: 0 -4px; }
 .readout[aria-pressed="true"] {
   border-color: var(--card-color);
   background: linear-gradient(180deg, color-mix(in srgb, var(--card-color) 14%, var(--char)), var(--obsidian));
@@ -789,6 +806,11 @@ a { color: inherit; }
 .ro-now { position: absolute; top: 0; width: 2px; height: 18px; margin-left: -1px; background: var(--bone); opacity: 0.55; }
 .ro-range { font-size: 0.72rem; color: var(--ash); }
 .readout .card-stats { padding-top: var(--s-1); border-top: 1px solid var(--line); }
+.readout .card-stats div { gap: 0.4rem; }
+.readout .card-stats dt, .readout .card-stats dd { white-space: nowrap; }
+/* Week-on-week change of the forecast: green up, red down */
+.ro-change.is-up { color: var(--better); }
+.ro-change.is-down { color: var(--worse); }
 
 .today-grid { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: var(--s-3); margin-bottom: var(--s-3); }
 .lt-row { grid-template-columns: minmax(120px, 1.4fr) minmax(130px, 1.6fr) 4em 4em; min-width: 0; }
@@ -863,7 +885,7 @@ a { color: inherit; }
     scrollbar-width: thin;
   }
   .readout { scroll-snap-align: start; padding: var(--s-3); }
-  .readout:hover { transform: none; }
+  .readout:hover { translate: none; }
   .lt-row { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.35fr) 2.8em 2.6em; column-gap: 0.5rem; }
   .lt-row.sc-head { display: grid; }
   .lt-row .sc-name, .lt-row .sc-bar { grid-column: auto; grid-row: auto; }
@@ -871,9 +893,9 @@ a { color: inherit; }
 }
 
 
-/* ---- Display type: Gloock, set in capitals ------------------------------------- */
-/* A wide, high-contrast serif: capitals give the headlines a carved, material
-   feel; slightly open tracking keeps the serifs from touching. */
+/* ---- Display type: GFS Didot, set in capitals ---------------------------------- */
+/* A high-contrast Didone serif: capitals give the headlines a carved, material
+   feel; slightly open tracking keeps the hairline serifs from touching. */
 .brand, .hero-title, .section-head h2, .chapter-text h2, .method-intro h2,
 .panel-head h3, .vol-head h3, .card-name, .sim-asset {
   text-transform: uppercase;
@@ -1115,6 +1137,8 @@ a { color: inherit; }
 .site-nav.is-floating .brand { font-size: 0.85rem; white-space: nowrap; }
 .site-nav.is-floating nav a { color: var(--bone); opacity: 0.78; }
 .site-nav.is-floating nav a:hover { opacity: 1; }
+.site-nav nav a[aria-current="true"],
+.site-nav.is-floating nav a[aria-current="true"] { color: var(--amber); opacity: 1; }
 .site-nav .scroll-progress { left: 1.2rem; right: 1.2rem; opacity: 0; transition: opacity 0.3s; }
 .site-nav.is-floating .scroll-progress { opacity: 1; }
 @keyframes nav-in { from { transform: translateY(-140%); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -1148,6 +1172,8 @@ a { color: inherit; }
                               scrollbar-width: none; gap: var(--s-3); white-space: nowrap; }
   .site-nav.is-floating nav::-webkit-scrollbar { display: none; }
   .site-nav.is-floating nav a { flex: none; }
+  /* Room for the active link's underline inside the scrolling row */
+  .site-nav.is-floating nav { padding-bottom: 0.45rem; margin-bottom: -0.45rem; }
   .wm-badge { right: var(--s-2); top: var(--s-2); padding: 0.5rem 0.75rem; }
 }
 @media (prefers-reduced-motion: reduce) {

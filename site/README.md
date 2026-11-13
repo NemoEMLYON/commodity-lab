@@ -30,7 +30,7 @@ js/simulator.js   JS port of the R backtest (also runs in Node)
 js/sim-ui.js      simulator controls and charts; loads its data when the section is near
 tests/            node tests/test_simulator.js: JS vs 60 R reference cases
 data/             JSON and CSV exported from R (versioned)
-assets/fonts/     Gloock (display face, SIL OFL 1.1, licence in Gloock-OFL.txt)
+assets/fonts/     GFS Didot (display face, SIL OFL 1.1, licence in GFSDidot-OFL.txt)
 ```
 
 ## Deployment
