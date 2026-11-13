@@ -49,13 +49,14 @@
         about 20% against the HAR benchmark.</p>
       <div class="hero-actions">
         <a class="cta" href="#materials">Explore the five materials</a>
-        <a class="live-strip" href="#today" hidden>
-          <span class="live-strip-label"><span class="live-dot" aria-hidden="true"></span>Tonight's forecast, next 21 days</span>
-          <span class="live-strip-items"></span>
-        </a>
+        <div class="live-strip" hidden>
+          <a class="live-strip-label" href="#today"><span class="live-dot" aria-hidden="true"></span>Tonight's forecast, next 21 days</a>
+          <span class="live-strip-items" role="group" aria-label="Show a commodity"></span>
+        </div>
       </div>
     </div>
 
+    <p class="hero-material" aria-hidden="true"><b class="hm-name"></b><span class="hm-note"></span></p>
     <p class="hero-caption">Lines: 22-day realised volatility of the five ETFs, 2011–2026,
       log scale. Prices from Yahoo Finance, computed in R.</p>
   </section>
@@ -235,6 +236,61 @@
             <span class="mark-worse" aria-hidden="true">▼</span> significantly worse
             (Diebold-Mariano test with Newey-West errors, 5% level, about 65 comparisons in
             total). Values below 1.00 mean a lower loss than HAR.</figcaption>
+        </figure>
+      </div>
+    </article>
+
+    <article class="chapter chapter--map" aria-labelledby="ch5-title">
+      <div class="wrap">
+        <div class="map-head">
+          <div class="chapter-text map-text">
+            <p class="chapter-no num">05</p>
+            <h2 id="ch5-title">The weather test</h2>
+          </div>
+          <div class="map-intro">
+            <p>Natural gas heats the homes of the Northeast and the Midwest, so a cold week should
+              mean more gas burnt and a nervous market. The study measured heating demand in ten
+              cities every day since 2006: each pillar is a city's demand that week, the ring the
+              usual level for the date.</p>
+            <p>Replay a winter and watch the cold move across the region. Then look at what it did to
+              the forecast: <strong>nothing measurable</strong>. Adding heating demand, together with gas
+              storage, to the natural gas models did not lower their loss: the Lasso stays at 1.27 times
+              HAR's, the forest gets worse (1.23 to 1.32). One reading: by the time a cold week is
+              measured, gas prices, and their volatility, have already moved.</p>
+          </div>
+        </div>
+
+        <figure class="weathermap" id="weathermap">
+          <div class="wm-stage">
+            <canvas class="wm-canvas" aria-label="3D map of the Northeast and Midwest with one pillar per city showing heating demand for the selected week"></canvas>
+            <div class="wm-labels" aria-hidden="true"></div>
+            <div class="wm-tip lab-tip" hidden></div>
+            <p class="wm-hint">Drag to turn the map · hover a pillar</p>
+            <p class="wm-loading">Loading the map</p>
+          </div>
+
+          <aside class="wm-side" aria-live="polite">
+            <p class="wm-week num">&nbsp;</p>
+            <dl class="wm-stats">
+              <div><dt>Heating demand vs usual, 10 cities</dt><dd class="num" data-k="agg">–</dd></div>
+              <div><dt>Gas in storage vs usual</dt><dd class="num" data-k="gas">–</dd></div>
+              <div><dt>Natural gas volatility, last 22 days</dt><dd class="num" data-k="vol">–</dd></div>
+            </dl>
+            <div class="wm-spark" aria-hidden="true"></div>
+            <p class="wm-legend"><span class="lg-cold"></span>colder than usual <span class="lg-warm"></span>milder
+              <span class="lg-ring"></span>usual level</p>
+          </aside>
+
+          <div class="wm-controls">
+            <button type="button" class="wm-play" aria-label="Play the weeks">Play</button>
+            <input type="range" class="wm-range" min="0" max="0" value="0" aria-label="Week shown">
+            <div class="wm-presets" role="group" aria-label="Notable weeks"></div>
+          </div>
+
+          <figcaption>Heating degree days (HDD): for each day, 65°F minus the mean temperature when it is
+            colder than 65°F, averaged over 7 days. Usual level: the same date in up to ten previous years.
+            Temperatures: Open-Meteo historical archive (ERA5 reanalysis, CC BY 4.0). Map: US Census Bureau
+            cartographic boundaries (public domain). Weekly, on Fridays.</figcaption>
         </figure>
       </div>
     </article>
@@ -513,6 +569,8 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/SplitText.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
 <script src="js/hero.js"></script>
 <script src="js/live.js"></script>
@@ -520,6 +578,8 @@
 <script src="js/lab.js"></script>
 <script src="js/simulator.js"></script>
 <script src="js/sim-ui.js"></script>
+<script src="js/weathermap.js"></script>
+<script src="js/motion.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

@@ -233,3 +233,60 @@ export_site_csv <- function(predictions, results, backtest_summary_table,
   write.csv(backtest_summary_table, paths[3], row.names = FALSE)
   paths
 }
+
+
+# ---- Weather map (Findings, "The weather test") --------------------------------
+#
+# Weekly heating degree days per city, for the 3D map. Same definitions as
+# weather_features() in 02_features.R, but city by city instead of averaged:
+#   hdd      = max(0, 65°F - daily mean temperature)
+#   hdd_7    = 7-day mean of hdd
+#   normal   = mean of hdd_7 on the same date in past years (up to 10, at least 3)
+#   anomaly  = hdd_7 - normal   (> 0: colder than usual, more gas burnt for heat)
+# The mean of the 10 city anomalies equals the pipeline's hdd_anomaly (tested).
+# Sampled on Fridays, with the natural gas market on the same day: gas
+# storage vs its usual level (gas_dev) and UNG's 22-day realised volatility.
+
+WEATHER_MAP_FROM <- as.Date("2011-01-07")     # first Friday of the sample
+
+CITY_NAMES <- c(new_york = "New York", boston = "Boston", philadelphia = "Philadelphia",
+                washington = "Washington", pittsburgh = "Pittsburgh", cleveland = "Cleveland",
+                detroit = "Detroit", chicago = "Chicago", minneapolis = "Minneapolis",
+                atlanta = "Atlanta")
+
+city_hdd <- function(dates, temps) {
+  hdd    <- pmax(HDD_BASE_F - temps, 0)
+  hdd_7  <- roll_mean(hdd, 7)
+  normal <- past_years_mean(dates, hdd_7, 365, WEATHER_PAST_YEARS_MAX, PAST_YEARS_MIN)
+  data.frame(hdd_7 = hdd_7, normal = normal, anomaly = hdd_7 - normal)
+}
+
+weather_map_data <- function(weather, features, from = WEATHER_MAP_FROM) {
+  dates   <- as.Date(index(weather))
+  fridays <- dates[dates >= from & as.POSIXlt(dates)$wday == 5]
+  rows    <- match(fridays, dates)
+
+  hdd <- lapply(colnames(weather), function(city) city_hdd(dates, as.numeric(weather[, city]))[rows, ])
+  per_city <- lapply(seq_along(hdd), function(k) {
+    city <- colnames(weather)[k]
+    list(id = city, name = unname(CITY_NAMES[city]),
+         lat = WEATHER_CITIES$lat[WEATHER_CITIES$city == city],
+         lon = WEATHER_CITIES$lon[WEATHER_CITIES$city == city],
+         normal  = round(hdd[[k]]$normal, 1),
+         anomaly = round(hdd[[k]]$anomaly, 1))
+  })
+  anomalies <- sapply(hdd, function(h) h$anomaly)   # exact values, rounded after the mean
+
+  # Natural gas market on each Friday (or the last trading day before it).
+  gas <- features[features$asset == "natgas", ]
+  gas <- gas[order(gas$date), ]
+  i   <- findInterval(fridays, gas$date)
+  i[i == 0] <- NA
+  list(
+    weeks       = format(fridays),
+    cities      = per_city,
+    agg_anomaly = round(rowMeans(anomalies), 1),
+    gas_dev     = round(gas$gas_dev[i], 3),
+    ung_vol     = round(exp(gas$har_m[i]), 3)
+  )
+}

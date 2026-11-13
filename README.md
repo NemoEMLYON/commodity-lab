@@ -65,7 +65,8 @@ export_site.R   writes site/data/ from the saved results
 freeze_models.R saves the models used live (models/, versioned)
 live.R          daily forecasts with the frozen models (site/data/live.json)
 tests/          unit and anti-leakage tests (testthat)
-site/           static website (HTML, CSS, JS, D3, GSAP)
+site/           static website (HTML, CSS, JS, D3, GSAP, three.js)
+tools/          one-off Node script: map geometry for the weather chapter
 data/raw/       source data as received (not in Git)
 data/processed/ derived tables and results (not in Git)
 docs/           project guide (PDF, French)

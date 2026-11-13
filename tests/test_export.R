@@ -31,3 +31,34 @@ test_that("exported JSON reads back with the same values", {
   expect_equal(back$oil$vol, vol_history(features)$oil$vol)
   expect_equal(length(back$oil$date), length(back$oil$vol))
 })
+
+
+# ---- Weather map ------------------------------------------------------------------
+
+test_that("the mean of the city anomalies is the pipeline's hdd_anomaly", {
+  raw <- make_fake_raw()
+  colnames(raw$weather) <- WEATHER_CITIES$city
+  features <- build_features(raw)
+  map <- weather_map_data(raw$weather, features)
+
+  # Pipeline value on the same Fridays, before its availability lag
+  w <- weather_features(raw$weather, sort(unique(features$date)))
+  expected <- round(w$hdd_anomaly[match(as.Date(map$weeks), w$date)], 1)
+  ok <- !is.na(expected)
+  expect_true(sum(ok) > 200)
+  expect_true(max(abs(map$agg_anomaly[ok] - expected[ok])) <= 0.051)   # both rounded
+  expect_true(all(as.POSIXlt(as.Date(map$weeks))$wday == 5))          # Fridays
+  expect_length(map$cities, 10)
+  expect_equal(map$cities[[8]]$name, "Chicago")
+  expect_length(map$cities[[1]]$anomaly, length(map$weeks))
+})
+
+test_that("the gas market is taken on the Friday or the last trading day before it", {
+  raw <- make_fake_raw()
+  colnames(raw$weather) <- WEATHER_CITIES$city
+  features <- build_features(raw)
+  map <- weather_map_data(raw$weather, features)
+  gas <- features[features$asset == "natgas", ]
+  k <- which(map$weeks == "2015-07-03")                 # US holiday-like: plain Friday here
+  expect_equal(map$ung_vol[k], round(exp(gas$har_m[gas$date == as.Date("2015-07-03")]), 3))
+})

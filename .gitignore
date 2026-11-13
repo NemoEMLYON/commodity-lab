@@ -23,3 +23,8 @@ site/assets/fonts/OneSlice.otf
 # OS / editor
 .DS_Store
 Thumbs.db
+
+# Node packages for tools/ scripts (reinstall with npm, see the script header)
+tools/node_modules/
+tools/package-lock.json
+tools/package.json

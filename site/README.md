@@ -20,6 +20,9 @@ css/tokens.css    design tokens: colours, type, spacing (single source)
 css/main.css      layout and components
 js/hero.js        hero: real volatility traces + liquid-metal WebGL object
 js/main.js        loads the data, builds the cards and the D3 chart, starts the sections
+js/live.js        "Today" section: tonight's forecasts (data/live.json, updated daily)
+js/motion.js      scroll choreography (GSAP ScrollTrigger + SplitText)
+js/weathermap.js  Findings chapter 05: 3D weather map (three.js, loaded when near)
 js/story.js       findings section (risk bars, timeline, 2x2, heatmap)
 js/lab.js         the lab: forecasts vs outcome, scores, horizon panel
 js/simulator.js   JS port of the R backtest (also runs in Node)

@@ -26,6 +26,10 @@ paths <- c(paths,
            write_json_full(sim, "simulator"),
            write_json_full(simulator_fixtures(sim), "simulator_checks"))
 
+# Weather map: weekly heating degree days per city (read from the cache in
+# data/raw/, no download if the cache is there)
+paths <- c(paths, write_site_json(weather_map_data(fetch_weather(), features), "weather_map"))
+
 # CSV files offered for download on the site
 paths <- c(paths, export_site_csv(predictions, results, backtest_summary(backtest)))
 

@@ -237,8 +237,17 @@ implied vol same day).
   needed by GitHub Pages).
 - Libraries (CDN, pinned versions): GSAP 3.13 (+ ScrollTrigger, SplitText)
   for motion, D3 v7 for charts. Native scroll, no scroll hijacking.
-  Hero object: lightweight WebGL shader (liquid metal), CSS fallback,
-  static under prefers-reduced-motion.
+  Hero object: WebGL ray-marched liquid metal (S14 rework): one look per
+  commodity (mirror gold, black iridescent oil, brushed copper, cold steel
+  gas, satin corn), surface ripples = tonight's forecast vol (12% calm ->
+  60% turbulent), cursor sphere on a time-based spring (K 70, C 11) with
+  the cursor unprojected onto the object's plane (reach 0.85), adaptive
+  resolution (starts at 75%, 40-100%). The hero cycles through the five
+  materials until the visitor picks one. CSS fallback, static under
+  prefers-reduced-motion. Benchmark (software GL, 1440x900): 12 -> 25 fps.
+- Scroll (js/motion.js): hero exit parallax, heading lines rising from a
+  mask (SplitText), staggered panels, progress line under the nav. Nothing
+  hidden in CSS: without JS or with reduced motion everything is visible.
 - Design brief: `Creative Direction/*.docx` (dark warm base, champagne
   gold / copper accents, one material per commodity, purposeful motion,
   data first). Typefaces: Gloock (display, capitals, headlines),
@@ -248,6 +257,20 @@ implied vol same day).
 - Sections: hero (with a live strip), today, materials, findings, lab,
   simulator, method. The simulator data is lazy-loaded near its section. Downloads: derived CSVs
   in `site/data/csv/` (written by `export_site_csv()`).
+- Findings chapter 05 "The weather test" (js/weathermap.js): 3D model of
+  the Northeast/Midwest (three.js 0.170.0 from jsDelivr, loaded only near
+  the chapter): extruded states (us-atlas 3.0.1 = Census cartographic
+  boundaries, public domain, projected once by tools/build_map_geometry.js
+  -> site/data/map_geometry.json), one pillar per weather city = 7-day HDD
+  that week, ring = usual level, colour = anomaly (blue colder, amber
+  milder, exact colours: toneMapped false), timeline + play + presets
+  (Jan 2014 polar vortex, Feb 2015 deep freeze, Dec 2022 storm Elliott),
+  side panel with the gas market (storage vs usual, UNG 22-day vol) and two
+  clickable sparklines. Drag = orbit, no wheel zoom. Flat SVG fallback
+  without WebGL. Data: weather_map_data() in 08_export.R (per-city HDD with
+  the pipeline's own helpers; mean of city anomalies = hdd_anomaly, tested).
+  Text: block B4 (HDD + storage + dollar) did not lower natural gas loss
+  (Lasso 1.27x HAR before and after, forest 1.23 -> 1.32).
 - Selectors: always scope to the section (`#materials .chart`): several
   sections have `.chart` / `.tooltip` (bug in S14: the materials chart was
   drawn into the Today chart).

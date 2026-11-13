@@ -49,7 +49,6 @@
   const tickers = Object.fromEntries(assets.map(a => [a.id, a.ticker]));
 
   if (window.Hero) window.Hero.init(data.vol_history, colors, tickers);
-  if (window.gsap && window.ScrollTrigger) gsap.registerPlugin(ScrollTrigger);
 
 
   // ---- Material cards ---------------------------------------------------------
@@ -175,13 +174,51 @@
     }).on("pointerleave", () => { hover.attr("opacity", 0); tooltip.hidden = true; });
   }
 
-  function select(id) {
+  // Volatility that drives the metal object: tonight's forecast when the live
+  // file is there, otherwise the latest 22-day realised volatility.
+  function volFor(id) {
+    const t = data.live && data.live.today.find(x => x.id === id);
+    return t ? t.forecast_vol : assets.find(a => a.id === id).vol_now;
+  }
+
+  // The hero shows one material at a time: it cycles through the five until
+  // the visitor picks one (a card, a chip, the hero strip).
+  const NAMES = Object.fromEntries(assets.map(a => [a.id, a.name]));
+  let picked = false, heroShowing = null;
+
+  function showInHero(id) {
+    heroShowing = id;
+    const vol = volFor(id);
+    const live = data.live && data.live.today.find(x => x.id === id);
+    document.querySelector(".hm-name").textContent = NAMES[id];
+    document.querySelector(".hm-name").style.color = colors[id];
+    document.querySelector(".hm-note").textContent = live
+      ? `ripples with tonight's 21-day forecast: ${pct(vol)}`
+      : `ripples with its latest volatility: ${pct(vol)}`;
+    document.querySelectorAll(".ls-item").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.asset === id)));
+  }
+
+  function startHeroCycle() {
+    if (reduceMotion) return;
+    const ids = assets.map(a => a.id);
+    let heroVisible = true;
+    new IntersectionObserver(e => { heroVisible = e[0].isIntersecting; }).observe(document.querySelector(".hero"));
+    setInterval(() => {
+      if (picked || !heroVisible || document.hidden) return;
+      showInHero(ids[(ids.indexOf(heroShowing) + 1) % ids.length]);
+    }, 5200);
+  }
+
+  function select(id, byUser = true) {
     const asset = assets.find(a => a.id === id);
-    if (!asset || current === id) return;
+    if (!asset) return;
+    if (byUser) picked = true;
+    showInHero(id);
+    if (current === id) return;
     current = id;
     document.querySelectorAll(".card").forEach(c => c.setAttribute("aria-pressed", String(c.dataset.asset === id)));
     document.documentElement.style.setProperty("--material", `var(${MATERIAL_TOKEN[asset.material]})`);
-    if (window.Hero) window.Hero.setTint(colorOf(asset));
+    if (window.Hero) window.Hero.setMaterial(id, volFor(id));
 
     document.querySelector(".vol-head h3").textContent = `${asset.name} volatility`;
     document.querySelector(".vol-head p").textContent =
@@ -201,7 +238,10 @@
   document.querySelector(".data-date").textContent = longDate(data.meta.sample_end);
   if (window.Live) window.Live.init(data.live, assets, { pct, colors, longDate });
   if (window.Story) window.Story.init(data, { pct, colors });
+  if (window.WeatherMap) window.WeatherMap.init(data, { pct });   // loads when near
   if (window.Lab) window.Lab.init(data, { pct, colors, longDate });
   if (window.SimUI) window.SimUI.init(data, { pct, colors });
-  select("gold");
+  select("gold", false);
+  startHeroCycle();
+  if (window.Motion) window.Motion.init();     // after the content is built
 })();

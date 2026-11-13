@@ -888,3 +888,139 @@ a { color: inherit; }
   /* Phones: let "the material" break onto its own lines for a larger title */
   .hero-title { font-size: clamp(2.5rem, 14vw, 4.5rem); }
 }
+
+/* ---- Hero: material label and clickable strip ------------------------------------ */
+.live-strip-label { color: var(--ash); text-decoration: none; }
+.live-strip-label:hover { color: var(--bone); }
+.ls-item {
+  appearance: none;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: none;
+  padding: 0.1rem 0;
+  font: inherit;
+  cursor: pointer;
+  transition: color 0.3s, border-color 0.3s;
+}
+.ls-item:hover, .ls-item[aria-pressed="true"] { color: var(--bone); border-bottom-color: var(--champagne); }
+.hero-material {
+  position: absolute;
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--s-2) + 4.2rem);
+  margin: 0;
+  display: grid;
+  justify-items: end;
+  gap: 0.15rem;
+  text-align: right;
+}
+.hm-name { font-family: var(--font-display); font-weight: 400; text-transform: uppercase; letter-spacing: 0.04em; font-size: var(--step-1); color: var(--material); }
+.hm-note { font-family: var(--font-data); font-size: 0.72rem; color: var(--ash); }
+@media (max-width: 760px) {
+  .hero-material { position: static; justify-items: start; text-align: left; margin-top: var(--s-3);
+                   padding-inline: max(16px, env(safe-area-inset-left, 0px)); }
+}
+
+/* Scroll progress under the navigation (scaled by motion.js); the nav is
+   absolutely positioned, so it already anchors this line. */
+.scroll-progress {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
+  background: linear-gradient(90deg, var(--champagne), var(--material));
+  transform: scaleX(0); transform-origin: 0 50%;
+}
+
+
+/* ---- 05 — The weather test (3D map) ---------------------------------------------- */
+
+.chapter--map .map-head {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: var(--s-5);
+  align-items: end;
+  margin-bottom: var(--s-4);
+}
+.map-text { position: static; }
+.map-intro { display: grid; gap: var(--s-2); }
+.map-intro p { margin: 0; color: var(--ash); max-width: 62ch; }
+.map-intro strong { color: var(--bone); font-weight: 600; }
+
+.weathermap {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-areas: "stage side" "controls controls" "caption caption";
+  gap: var(--s-3);
+}
+.wm-stage {
+  grid-area: stage;
+  position: relative;
+  aspect-ratio: 16 / 10;
+  min-height: 380px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  overflow: hidden;
+  background: radial-gradient(120% 90% at 50% 30%, #241b14 0%, var(--obsidian) 70%);
+}
+.wm-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: pan-y; cursor: grab; }
+.wm-canvas:active { cursor: grabbing; }
+.wm-flat { position: absolute; inset: 0; width: 100%; height: 100%; }
+.wm-flat .wm-state { fill: #2a2119; stroke: color-mix(in srgb, var(--champagne) 40%, transparent); stroke-width: 0.8; }
+.wm-flat circle { stroke: var(--obsidian); stroke-width: 1.5; transition: r 0.3s, fill 0.3s; }
+.wm-labels { position: absolute; inset: 0; pointer-events: none; }
+.wm-label {
+  position: absolute; left: 0; top: 0;
+  display: grid; justify-items: center; gap: 1px;
+  font-size: 0.68rem; line-height: 1.1; white-space: nowrap;
+  color: var(--bone); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+}
+.wm-label b { font-weight: 600; }
+.wm-label span { font-family: var(--font-data); color: var(--c, var(--ash)); }
+.wm-tip { position: absolute; transform: translate(-50%, -100%); z-index: 2; }
+.wm-hint, .wm-loading {
+  position: absolute; left: var(--s-3); bottom: var(--s-2); margin: 0;
+  font-size: 0.72rem; color: var(--ash); pointer-events: none;
+}
+.wm-loading { left: 50%; top: 50%; bottom: auto; transform: translate(-50%, -50%); font-family: var(--font-data); }
+.wm-stage.is-ready .wm-loading { display: none; }
+
+.wm-side {
+  grid-area: side;
+  display: grid; align-content: start; gap: var(--s-2);
+  padding: var(--s-3);
+  border: 1px solid var(--line); border-radius: var(--radius-l); background: var(--char);
+}
+.wm-week { margin: 0; font-size: var(--step--1); color: var(--champagne); }
+.wm-stats { margin: 0; display: grid; gap: var(--s-2); }
+.wm-stats div { display: grid; gap: 0.15rem; }
+.wm-stats dt { font-size: 0.72rem; color: var(--ash); }
+.wm-stats dd { margin: 0; font-size: var(--step-1); color: var(--bone); }
+.wm-spark svg { display: block; width: 100%; height: auto; }
+.wm-spark-label { fill: var(--ash); font-size: 10px; font-family: var(--font-body); }
+.wm-zero { stroke: var(--line); }
+.wm-line-agg { fill: none; stroke: #4d8cff; stroke-width: 1; stroke-opacity: 0.8; }
+.wm-line-vol { fill: none; stroke: var(--m-gas); stroke-width: 1; }
+.wm-marker { stroke: var(--champagne); stroke-width: 1.5; }
+.wm-legend { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.5rem; font-size: 0.7rem; color: var(--ash); }
+.wm-legend span { display: inline-block; flex: none; }
+.lg-cold, .lg-warm { width: 9px; height: 14px; border-radius: 2px; }
+.lg-cold { background: #4d8cff; } .lg-warm { background: #ff9429; margin-left: 0.4rem; }
+.lg-ring { width: 12px; height: 12px; border: 2px solid var(--bone); border-radius: 50%; margin-left: 0.4rem; }
+
+.wm-controls { grid-area: controls; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-2); }
+.wm-play {
+  appearance: none; border: 1px solid var(--champagne); background: none; color: var(--bone);
+  border-radius: 999px; padding: 0.4rem 1.1rem; font: inherit; font-size: var(--step--1); cursor: pointer; min-width: 5.5rem;
+}
+.wm-play:hover { background: color-mix(in srgb, var(--champagne) 15%, transparent); }
+.wm-range { flex: 1 1 260px; accent-color: var(--champagne); }
+.wm-presets { display: flex; flex-wrap: wrap; gap: var(--s-1); }
+.weathermap figcaption { grid-area: caption; font-size: 0.75rem; color: var(--ash); max-width: 90ch; }
+
+@media (max-width: 900px) {
+  .chapter--map .map-head { grid-template-columns: minmax(0, 1fr); gap: var(--s-2); }
+  .weathermap { grid-template-columns: minmax(0, 1fr); grid-template-areas: "stage" "controls" "side" "caption"; }
+  .wm-stage { aspect-ratio: 1 / 1; min-height: 0; }
+}
+@media (max-width: 600px) {
+  .wm-label { font-size: 0.6rem; }
+  .wm-label span { display: none; }      /* names only: values in the tooltip and panel */
+}

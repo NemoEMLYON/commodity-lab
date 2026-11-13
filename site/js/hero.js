@@ -4,10 +4,10 @@
  *     2011, drawn on a log scale across the whole hero (2D canvas).
  *  2. Metal: a liquid-metal object rendered by a small WebGL fragment shader
  *     (ray marching of three blended spheres, reflecting a warm "studio").
- *     One sphere follows the cursor within a small range. Its tint follows
- *     the selected commodity.
+ *     The object takes the look of the selected commodity and ripples with
+ *     its volatility forecast; one sphere is pulled by the cursor.
  *
- * Exposes window.Hero = { init(volHistory, colors), setTint(hex) }.
+ * Exposes window.Hero = { init(volHistory, colors, tickers), setMaterial(id, vol) }.
  */
 (function () {
   "use strict";
@@ -79,6 +79,17 @@
 
 
   // ---- 2. Liquid metal (WebGL) ------------------------------------------------
+  //
+  // The object becomes the selected material: each commodity has its own
+  // surface (mirror gold, black oil with an iridescent film, brushed copper,
+  // cold steel for gas, satin corn), and the surface ripples as much as that
+  // commodity's volatility forecast for tonight.
+  // One sphere is pulled by the cursor with a spring, so it lags, overshoots
+  // and stretches like a liquid.
+  //
+  // Speed: rays that miss a bounding sphere are skipped (most of the canvas
+  // is empty), normals use 4 samples instead of 6, and the resolution adapts
+  // to the measured frame time.
 
   const VERT = "attribute vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }";
 
@@ -86,8 +97,15 @@
     precision highp float;
     uniform vec2 u_res;
     uniform float u_time;
-    uniform vec2 u_mouse;
+    uniform vec3 u_pull;      // world position of the cursor sphere
+    uniform vec2 u_vel;       // its velocity (stretch)
     uniform vec3 u_tint;
+    uniform float u_agit;     // 0 calm .. 1 turbulent (volatility)
+    uniform float u_rough;    // 0 mirror .. 1 satin
+    uniform float u_dark;     // 0 metal .. 1 black liquid (oil)
+    uniform float u_irid;     // thin-film iridescence
+
+    const float BOUND = 1.5;  // radius of a sphere containing the whole object
 
     float smin(float a, float b, float k) {
       float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
@@ -95,33 +113,48 @@
     }
 
     float map(vec3 p) {
-      float t = u_time * 0.32;
-      vec3 c1 = vec3(sin(t) * 0.28, cos(t * 1.3) * 0.22, 0.0);
-      vec3 c2 = vec3(u_mouse * 0.55, 0.25);
-      vec3 c3 = vec3(-cos(t * 0.8) * 0.42, sin(t * 0.9) * 0.34, -0.1);
+      float t = u_time * (0.28 + 0.35 * u_agit);
+      vec3 c1 = vec3(sin(t) * 0.32, cos(t * 1.3) * 0.26, sin(t * 0.7) * 0.12);
+      vec3 c3 = vec3(-cos(t * 0.8) * 0.46, sin(t * 0.9) * 0.38, -0.1 + cos(t * 0.6) * 0.12);
+
+      // Cursor sphere, squashed along its motion: it stretches when moved fast.
+      vec3 q = p - u_pull;
+      float speed = length(u_vel);
+      if (speed > 1e-3) {
+        vec3 dir = vec3(u_vel / speed, 0.0);
+        float s = min(speed * 0.18, 0.55);
+        q -= dir * dot(q, dir) * s;
+      }
       float d = length(p - c1) - 0.62;
-      d = smin(d, length(p - c2) - 0.30, 0.45);
+      d = smin(d, length(q) - 0.30, 0.45);
       d = smin(d, length(p - c3) - 0.40, 0.50);
-      d += 0.025 * sin(p.x * 6.0 + t * 2.0) * sin(p.y * 5.0 - t * 1.7) * sin(p.z * 4.0 + t);
+
+      // Surface ripples: amplitude and frequency grow with volatility.
+      float a = 0.012 + 0.055 * u_agit;
+      float f = 1.0 + 0.8 * u_agit;
+      d += a * sin(p.x * 6.0 * f + t * 2.0) * sin(p.y * 5.0 * f - t * 1.7) * sin(p.z * 4.0 * f + t);
       return d;
     }
 
+    // Tetrahedral normal: 4 evaluations of map() instead of 6.
     vec3 normalAt(vec3 p) {
-      vec2 e = vec2(0.0015, 0.0);
-      return normalize(vec3(map(p + e.xyy) - map(p - e.xyy),
-                            map(p + e.yxy) - map(p - e.yxy),
-                            map(p + e.yyx) - map(p - e.yyx)));
+      const vec2 k = vec2(1.0, -1.0);
+      const float h = 0.0015;
+      return normalize(k.xyy * map(p + k.xyy * h) + k.yyx * map(p + k.yyx * h) +
+                       k.yxy * map(p + k.yxy * h) + k.xxx * map(p + k.xxx * h));
     }
 
-    // A warm photo studio reflected by the metal: dark room, soft boxes.
-    vec3 studio(vec3 r) {
+    // A warm photo studio reflected by the metal. Rough materials see the
+    // same lights, only wider and dimmer (a cheap blurred reflection).
+    vec3 studio(vec3 r, float rough) {
       float up = r.y * 0.5 + 0.5;
+      float sharp = mix(1.0, 0.18, rough);
       vec3 col = mix(vec3(0.006, 0.005, 0.004), vec3(0.07, 0.05, 0.035), smoothstep(0.1, 1.0, up));
-      col += vec3(1.0, 0.95, 0.84) * smoothstep(0.90, 0.96, r.y) * 2.2;                 // overhead soft box
-      col += vec3(1.0, 0.88, 0.66) * pow(max(dot(r, normalize(vec3(0.85, 0.35, 0.45))), 0.0), 90.0) * 4.0;  // key light
-      col += vec3(1.0, 0.90, 0.75) * smoothstep(0.985, 0.995, dot(r, normalize(vec3(-0.35, 0.55, 0.75)))) * 2.5; // window strip
-      col += vec3(0.75, 0.52, 0.30) * pow(max(dot(r, normalize(vec3(-0.9, 0.05, 0.35))), 0.0), 12.0) * 0.9; // warm rim
-      col += vec3(0.22, 0.14, 0.07) * smoothstep(0.2, -0.8, r.y) * 0.6;                   // floor bounce
+      col += vec3(1.0, 0.95, 0.84) * smoothstep(0.90 - 0.25 * rough, 0.96, r.y) * mix(2.2, 0.9, rough);
+      col += vec3(1.0, 0.88, 0.66) * pow(max(dot(r, normalize(vec3(0.85, 0.35, 0.45))), 0.0), 90.0 * sharp) * mix(4.0, 1.2, rough);
+      col += vec3(1.0, 0.90, 0.75) * smoothstep(0.985 - 0.12 * rough, 0.995, dot(r, normalize(vec3(-0.35, 0.55, 0.75)))) * mix(2.5, 0.8, rough);
+      col += vec3(0.75, 0.52, 0.30) * pow(max(dot(r, normalize(vec3(-0.9, 0.05, 0.35))), 0.0), 12.0) * 0.9;
+      col += vec3(0.22, 0.14, 0.07) * smoothstep(0.2, -0.8, r.y) * 0.6;
       return col;
     }
 
@@ -130,11 +163,18 @@
       vec3 ro = vec3(0.0, 0.0, 3.0);
       vec3 rd = normalize(vec3(uv, -1.7));
 
-      float t = 0.0, d = 1.0, dmin = 1e3, tmin = 0.0;
-      for (int i = 0; i < 80; i++) {
+      // Skip rays that cannot reach the object.
+      float b = dot(ro, rd);
+      float disc = b * b - dot(ro, ro) + BOUND * BOUND;
+      if (disc < 0.0) { gl_FragColor = vec4(0.0); return; }
+      float t = max(-b - sqrt(disc), 0.0);
+      float tFar = -b + sqrt(disc);
+
+      float d = 1.0, dmin = 1e3, tmin = t;
+      for (int i = 0; i < 64; i++) {
         d = map(ro + rd * t);
         if (d < dmin) { dmin = d; tmin = t; }
-        if (d < 0.001 || t > 6.0) break;
+        if (d < 0.001 || t > tFar) break;
         t += d * 0.9;
       }
 
@@ -144,16 +184,47 @@
       vec3 p = ro + rd * (d < 0.001 ? t : tmin);
       vec3 n = normalAt(p);
       vec3 r = reflect(rd, n);
-      float fres = pow(1.0 - max(dot(-rd, n), 0.0), 3.0);
-      vec3 c = studio(r) * u_tint * 1.9 + fres * vec3(1.0, 0.95, 0.85) * 0.25 * u_tint;
+      float cosv = max(dot(-rd, n), 0.0);
+      float fres = pow(1.0 - cosv, 3.0);
+
+      vec3 c = studio(r, u_rough) * u_tint * 1.9 + fres * vec3(1.0, 0.95, 0.85) * 0.25 * u_tint;
+      c *= mix(1.0, 0.28, u_dark);                                   // oil: black, glossy
+      vec3 film = 0.5 + 0.5 * cos(6.2832 * (cosv * 1.6 + vec3(0.0, 0.33, 0.67)));
+      c += film * u_irid * (0.10 + 0.55 * fres) * (0.4 + studio(r, 0.6));  // thin film
       c = c / (1.0 + c);
       c = pow(c, vec3(0.92));
       gl_FragColor = vec4(c * alpha, alpha);
     }`;
 
-  const metal = { gl: null, canvas: null, uniforms: {}, tint: [0.89, 0.74, 0.41],
-                  target: [0.89, 0.74, 0.41], mouse: [0.35, 0.1], goal: [0.35, 0.1],
-                  visible: true, start: performance.now() };
+  // Look of each material (tint: RGB 0..1). Agitation comes from the data.
+  const MATERIALS = {
+    gold:   { tint: [0.92, 0.76, 0.42], rough: 0.04, dark: 0.0,  irid: 0.0 },
+    oil:    { tint: [0.80, 0.86, 0.86], rough: 0.0,  dark: 0.78, irid: 0.85 },
+    copper: { tint: [1.05, 0.58, 0.34], rough: 0.28, dark: 0.0,  irid: 0.08 },
+    natgas: { tint: [1.05, 1.18, 1.38], rough: 0.06, dark: 0.0,  irid: 0.0 },   // cold steel: the warm studio needs a strong blue tint
+    corn:   { tint: [0.80, 0.80, 0.48], rough: 0.58, dark: 0.0,  irid: 0.0 }
+  };
+  const PARAMS = ["tint0", "tint1", "tint2", "rough", "dark", "irid", "agit"];
+
+  // Volatility -> agitation: 12% or less is calm, 60% or more is turbulent.
+  const agitation = vol => Math.max(0, Math.min(1, (vol - 0.12) / (0.60 - 0.12)));
+
+  function materialParams(id, vol) {
+    const m = MATERIALS[id] || MATERIALS.gold;
+    return { tint0: m.tint[0], tint1: m.tint[1], tint2: m.tint[2], rough: m.rough,
+             dark: m.dark, irid: m.irid, agit: agitation(vol || 0.2) };
+  }
+
+  const REST = [0.19, 0.06, 0.25];      // cursor sphere at rest (world units)
+  const REACH = 0.85;                   // how far it can be pulled from the centre
+
+  const metal = {
+    gl: null, canvas: null, uniforms: {},
+    now: materialParams("gold", 0.2), goal: materialParams("gold", 0.2),
+    pos: REST.slice(), vel: [0, 0], target: REST.slice(), lastPointer: -1e9,
+    visible: true, start: performance.now(), last: performance.now(),
+    scale: 0.75, slow: 0, fast: 0
+  };
 
   function compile(gl, type, src) {
     const s = gl.createShader(type);
@@ -161,6 +232,19 @@
     gl.compileShader(s);
     if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
     return s;
+  }
+
+  // Screen position -> point on the plane z = 0.25 under the cursor, using
+  // the same camera as the shader (eye at z = 3, focal length 1.7).
+  function cursorToWorld(clientX, clientY) {
+    const r = metal.canvas.getBoundingClientRect();
+    const u = (clientX - r.left - 0.5 * r.width) / r.height;
+    const v = -(clientY - r.top - 0.5 * r.height) / r.height;
+    const depth = (3.0 - 0.25) / 1.7;
+    let x = u * depth, y = v * depth;
+    const len = Math.hypot(x, y);
+    if (len > REACH) { x *= REACH / len; y *= REACH / len; }   // stays attached
+    return [x, y, 0.25];
   }
 
   function initMetal(canvas) {
@@ -178,7 +262,8 @@
       const loc = gl.getAttribLocation(prog, "p");
       gl.enableVertexAttribArray(loc);
       gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-      ["u_res", "u_time", "u_mouse", "u_tint"].forEach(u => { metal.uniforms[u] = gl.getUniformLocation(prog, u); });
+      ["u_res", "u_time", "u_pull", "u_vel", "u_tint", "u_agit", "u_rough", "u_dark", "u_irid"]
+        .forEach(u => { metal.uniforms[u] = gl.getUniformLocation(prog, u); });
     } catch (err) {
       document.documentElement.classList.add("no-webgl");
       return false;
@@ -186,44 +271,80 @@
     metal.gl = gl;
     metal.canvas = canvas;
 
-    // Cursor: restrained range, eased.
-    window.addEventListener("pointermove", e => {
-      const r = canvas.getBoundingClientRect();
-      metal.goal = [
-        Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width) * 2 - 1)),
-        Math.max(-1, Math.min(1, -(((e.clientY - r.top) / r.height) * 2 - 1)))
-      ];
+    const hero = canvas.closest(".hero") || document.body;
+    hero.addEventListener("pointermove", e => {
+      if (e.pointerType !== "mouse") return;          // touch: the material keeps wandering
+      metal.target = cursorToWorld(e.clientX, e.clientY);
+      metal.lastPointer = performance.now();
     }, { passive: true });
+    hero.addEventListener("pointerleave", () => { metal.lastPointer = -1e9; });
 
-    // Only render while the hero is on screen.
     new IntersectionObserver(entries => { metal.visible = entries[0].isIntersecting; }).observe(canvas);
     requestAnimationFrame(frame);
     return true;
   }
 
+  // Spring towards the cursor: stiffness K, damping C (slightly under-damped,
+  // so the liquid overshoots a little). Time-based: same feel at 30 or 120 fps.
+  const K = 70, C = 11;
+
+  // Without a mouse on the hero, the cursor sphere wanders on its own: two
+  // sine waves per axis with unrelated periods, so the path never repeats.
+  const IDLE_AFTER = 1500;   // ms without mouse movement
+  function wander(sec) {
+    return [0.42 * Math.sin(sec * 0.37) + 0.22 * Math.sin(sec * 0.93 + 1.7),
+            0.30 * Math.cos(sec * 0.29) + 0.16 * Math.sin(sec * 1.17 + 0.4),
+            REST[2]];
+  }
+
+  function step(dt) {
+    const now = performance.now();
+    if (now - metal.lastPointer > IDLE_AFTER) metal.target = wander((now - metal.start) / 1000);
+    for (let i = 0; i < 2; i++) {
+      const force = K * (metal.target[i] - metal.pos[i]) - C * metal.vel[i];
+      metal.vel[i] += force * dt;
+      metal.pos[i] += metal.vel[i] * dt;
+    }
+    const ease = 1 - Math.exp(-dt * 2.2);          // material morph, ~0.5 s
+    PARAMS.forEach(k => { metal.now[k] += (metal.goal[k] - metal.now[k]) * ease; });
+  }
+
+  // Resolution follows the frame time. It starts at 75% of the screen's
+  // pixels (the object has soft edges, the difference is hard to see), drops
+  // quickly below ~40 fps and climbs back slowly above ~55 fps.
+  function adapt(frameMs) {
+    if (frameMs > 25) { metal.slow++; metal.fast = 0; } else if (frameMs < 18) { metal.fast++; metal.slow = 0; }
+    if (metal.slow > 8 && metal.scale > 0.4) { metal.scale = Math.max(0.4, metal.scale * 0.8); metal.slow = 0; }
+    if (metal.fast > 90 && metal.scale < 1) { metal.scale = Math.min(1, metal.scale + 0.1); metal.fast = 0; }
+  }
+
   function frame(now) {
+    const dt = Math.min((now - metal.last) / 1000, 1 / 20);
+    adapt(now - metal.last);
+    metal.last = now;
     const { gl, canvas, uniforms } = metal;
-    const scale = window.innerWidth < 760 ? 0.8 * dpr : dpr;   // lighter on phones
-    const w = Math.round(canvas.clientWidth * scale), h = Math.round(canvas.clientHeight * scale);
-    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
 
     if (metal.visible || reduceMotion) {
-      for (let i = 0; i < 2; i++) metal.mouse[i] += (metal.goal[i] - metal.mouse[i]) * 0.05;
-      for (let i = 0; i < 3; i++) metal.tint[i] += (metal.target[i] - metal.tint[i]) * 0.06;
+      if (!reduceMotion) step(dt); else { metal.pos = REST.slice(); metal.now = Object.assign({}, metal.goal); }
+      const base = window.innerWidth < 760 ? 0.75 : 1;   // lighter on phones
+      const scale = dpr * base * metal.scale;
+      const w = Math.round(canvas.clientWidth * scale), h = Math.round(canvas.clientHeight * scale);
+      if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+      const m = metal.now;
       gl.viewport(0, 0, w, h);
       gl.uniform2f(uniforms.u_res, w, h);
       gl.uniform1f(uniforms.u_time, reduceMotion ? 4.0 : (now - metal.start) / 1000);
-      gl.uniform2f(uniforms.u_mouse, metal.mouse[0], metal.mouse[1]);
-      gl.uniform3f(uniforms.u_tint, metal.tint[0], metal.tint[1], metal.tint[2]);
+      gl.uniform3f(uniforms.u_pull, metal.pos[0], metal.pos[1], REST[2]);
+      gl.uniform2f(uniforms.u_vel, metal.vel[0], metal.vel[1]);
+      gl.uniform3f(uniforms.u_tint, m.tint0, m.tint1, m.tint2);
+      gl.uniform1f(uniforms.u_agit, m.agit);
+      gl.uniform1f(uniforms.u_rough, m.rough);
+      gl.uniform1f(uniforms.u_dark, m.dark);
+      gl.uniform1f(uniforms.u_irid, m.irid);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     }
     if (!reduceMotion) requestAnimationFrame(frame);
-    else setTimeout(() => requestAnimationFrame(frame), 250);   // still follow tint changes
-  }
-
-  function hexToRgb(hex) {
-    const v = parseInt(hex.replace("#", ""), 16);
-    return [((v >> 16) & 255) / 255, ((v >> 8) & 255) / 255, (v & 255) / 255];
+    else setTimeout(() => requestAnimationFrame(frame), 250);   // still follow material changes
   }
 
 
@@ -246,6 +367,8 @@
       initMetal(document.querySelector(".hero-metal"));
       playIntro();
     },
-    setTint(hex) { metal.target = hexToRgb(hex); }
+    // The object takes the look of `id` and ripples as much as `vol`.
+    setMaterial(id, vol) { metal.goal = materialParams(id, vol); },
+    agitation
   };
 })();

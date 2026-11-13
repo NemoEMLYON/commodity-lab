@@ -59,6 +59,36 @@ Newest session first. Each entry: done / next / decisions / open issues.
   and erased. Fixed by scoping (`#materials .chart`); other selectors
   checked (all unique).
 
+- Hero metal object reworked (student: jerky, did not follow the mouse).
+  Causes: cursor mapped in canvas units, not unprojected (the sphere moved
+  ~1/3 of the way), frame-dependent easing, full-resolution ray marching.
+  Fixes: unprojection on the plane z = 0.25, time-based spring, tetrahedral
+  normals, bounding-sphere skip, adaptive resolution. Software-GL benchmark
+  12 -> 25 fps; 4 pointer positions checked on screenshots.
+- "Wow" pass: the object becomes the material (5 looks) and ripples with
+  tonight's volatility forecast; hero cycles through the materials, hero
+  strip clickable, label "ripples with tonight's 21-day forecast: x%";
+  scroll choreography (js/motion.js). Checked: no errors, no element left
+  transparent after a full scroll, no horizontal overflow (desktop, phone).
+
+- Hero material now wanders on its own when the mouse is idle or on touch
+  screens (two sines per axis, never repeats); wider internal motion.
+- Findings chapter 05 "The weather test": 3D map of the ten weather cities
+  (see CLAUDE.md > Website). R: weather_map_data() + 2 tests (13 checks in
+  test_export.R): mean of the per-city anomalies equals hdd_anomaly, gas
+  market taken on the Friday or the last trading day before. Map geometry
+  script fixed twice while checking its image: region ring winding (d3
+  took the whole globe) and a zero-length segment in the simplifier (closed
+  rings collapsed to 2 points: Georgia, Alabama...). Checked on desktop,
+  phone and without WebGL (flat fallback); no errors, no overflow.
+- Real weather_map.json (export_site.R on the PC): 824 weeks, 2011-01-07
+  to 2026-10-16; gas_dev empty for the first 104 weeks (starts 2013, as
+  documented). Coldest weeks vs usual (10-city mean): 2015-02-20 +19.4,
+  2026-01-30 +17.9, 2018-01-05 +17.4, 2014-01-10 +14.5. Presets checked
+  against these values: "storm Elliott" moved from 2022-12-30 (+6.6) to
+  2022-12-23 (+8.2, Minneapolis +21.9); Jan 2018 added. Pillar scale
+  lowered (real HDD reach 55). The map opens on the polar vortex week.
+
 **Live results, 2 Jan - 11 Nov 2026 (980 scored days, 21 pending per asset)**
 
   | asset | best so far | lasso_b2_iv / HAR | HAR 80% coverage |
