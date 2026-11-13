@@ -902,7 +902,30 @@ a { color: inherit; }
   cursor: pointer;
   transition: color 0.3s, border-color 0.3s;
 }
-.ls-item:hover, .ls-item[aria-pressed="true"] { color: var(--bone); border-bottom-color: var(--champagne); }
+.ls-item:hover, .ls-item[aria-pressed="true"] { color: var(--bone); }
+.ls-item { position: relative; padding-bottom: 0.45rem; border-bottom: 0; }
+/* Progress of the 5-second cycle under each button (--progress set by main.js) */
+.ls-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--bone) 16%, transparent);
+  overflow: hidden;
+}
+.ls-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--c, var(--champagne));
+  transform: scaleX(var(--progress, 0));
+  transform-origin: 0 50%;
+}
+.ls-item[aria-pressed="true"] .ls-bar { background: color-mix(in srgb, var(--bone) 28%, transparent); }
+/* Reduced motion: no automatic cycle, the bar marks the current commodity */
+.no-cycle .ls-item[aria-pressed="true"] .ls-bar::after { transform: scaleX(1); }
 .hero-material {
   position: absolute;
   right: max(16px, env(safe-area-inset-right, 0px));

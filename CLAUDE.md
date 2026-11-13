@@ -243,12 +243,17 @@ implied vol same day).
   60% turbulent), cursor sphere on a time-based spring (K 70, C 11) with
   the cursor unprojected onto the object's plane (reach 0.85), adaptive
   resolution (starts at 75%, 40-100%). The hero cycles through the five
-  materials until the visitor picks one. A commodity PICKED by the
-  visitor also takes its shape (S14, student's choices): gold ingot, oil
+  commodities, one every 5 s (main.js, requestAnimationFrame timer), each
+  as its shape; a 2px bar under the current hero-strip button fills over
+  the 5 s (CSS var --progress, colour of the commodity). A click jumps to
+  that commodity and restarts its 5 s; the cycle pauses while the pointer
+  or keyboard focus is on the strip, when the hero is off screen and when
+  the tab is hidden. Each commodity takes its shape (S14, student's choices): gold ingot, oil
   barrel, copper wire coil, gas bottle, corn cob with husk leaves; all
   signed distance functions in the same shader, blended with the liquid
   (u_morph: melt to liquid, switch shape, form), turned towards the cursor
-  (yaw/pitch spring) with a slow spin. The automatic cycle keeps the drop.
+  (yaw/pitch spring) with a slow spin. Morph rate 4.5/s (melt + form in
+  about 1.5 s, so a shape stays formed about 3.5 s of its 5 s).
   Two shader programs (#define SHAPES 0/1): the shapes code behind a
   uniform test halved the drop's frame rate (ANGLE/GPUs may not skip it);
   the shapes program is compiled 3 s after load. Ray march: up to 120 steps
@@ -258,7 +263,8 @@ implied vol same day).
   CSS fallback. Under
   prefers-reduced-motion the metal still moves, slowly (time x0.35, smaller
   wander; the student's Windows has "Animation effects" off, which froze it);
-  intro, scroll effects, hero cycle and map fly-in stay off. Benchmark (software GL, 1440x900): 12 -> 25 fps.
+  intro, scroll effects, hero cycle (no bars; the current button's bar
+  stays full) and map fly-in stay off. Benchmark (software GL, 1440x900): 12 -> 25 fps.
 - Scroll (js/motion.js): hero exit parallax, heading lines rising from a
   mask (SplitText), staggered panels, progress line under the nav. Nothing
   hidden in CSS: without JS or with reduced motion everything is visible.

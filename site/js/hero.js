@@ -506,7 +506,7 @@
     } else {
       morphGoal = metal.shape ? 1 : 0;
     }
-    metal.morph += (morphGoal - metal.morph) * (1 - Math.exp(-dt * 2.4));
+    metal.morph += (morphGoal - metal.morph) * (1 - Math.exp(-dt * 4.5));   // melt + form in ~1.5 s
 
     // Orientation: a slow spin, plus a turn towards the cursor when it moves.
     metal.spin += dt * 0.35 * CALM;

@@ -103,6 +103,14 @@ Newest session first. Each entry: done / next / decisions / open issues.
   (36 -> 13 fps software): shader split into a liquid and a shapes
   program, back to 34-36 fps. The scroll fade was ruled out (opacity back
   to 1 at the top, measured).
+- Hero autoplay (student's request): a new commodity every 5 s, shown as
+  its shape (the drop now only appears during the melt between two
+  shapes), with a progress bar under each hero-strip button, like
+  "stories". Click = jump there and restart the 5 s; pause on strip hover
+  or focus, hero off screen, hidden tab; off under reduced motion. Morph
+  sped up (rate 2.4 -> 4.5). Tested headless: gold -> oil -> copper in
+  order, click resets the bar, hover freezes it, no page errors; strip
+  checked on desktop and phone.
 - Liquid glass (js/glass.js): floating glass nav pill, hero strip and
   material label, map badge and tooltip; real refraction in Chrome/Edge via
   per-element SVG displacement filters, frosted fallback elsewhere.

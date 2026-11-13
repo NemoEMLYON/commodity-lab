@@ -184,11 +184,10 @@
   // The hero shows one material at a time: it cycles through the five until
   // the visitor picks one (a card, a chip, the hero strip).
   const NAMES = Object.fromEntries(assets.map(a => [a.id, a.name]));
-  let picked = false, heroShowing = null;
+  let heroShowing = null;
 
-  // withShape: a commodity picked by the visitor takes its shape; the
-  // automatic cycle keeps the liquid drop.
-  function showInHero(id, withShape = false) {
+  // The hero shows one commodity at a time, as its shape (ingot, barrel...).
+  function showInHero(id, withShape = true) {
     heroShowing = id;
     const vol = volFor(id);
     if (window.Hero) window.Hero.setMaterial(id, vol, withShape);
@@ -201,22 +200,49 @@
     document.querySelectorAll(".ls-item").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.asset === id)));
   }
 
+  // Automatic cycle: a new commodity every 5 seconds. The hero strip shows
+  // the progress under the current button (like "stories"). A click jumps to
+  // that commodity and restarts its 5 seconds. The cycle pauses while the
+  // pointer is on the strip (or the strip has keyboard focus), when the hero
+  // is off screen and when the tab is hidden. Off with reduced motion.
+  const CYCLE_MS = 5000;
+  const cycle = { elapsed: 0, last: performance.now(), heroVisible: true, hold: false };
+
+  function restartCycle() { cycle.elapsed = 0; }
+
   function startHeroCycle() {
-    if (reduceMotion) return;
+    const strip = document.querySelector(".live-strip");
+    if (reduceMotion) { if (strip) strip.classList.add("no-cycle"); return; }
     const ids = assets.map(a => a.id);
-    let heroVisible = true;
-    new IntersectionObserver(e => { heroVisible = e[0].isIntersecting; }).observe(document.querySelector(".hero"));
-    setInterval(() => {
-      if (picked || !heroVisible || document.hidden) return;
-      showInHero(ids[(ids.indexOf(heroShowing) + 1) % ids.length]);
-    }, 5200);
+    new IntersectionObserver(e => { cycle.heroVisible = e[0].isIntersecting; }).observe(document.querySelector(".hero"));
+    if (strip) {
+      strip.addEventListener("pointerenter", () => { cycle.hold = true; });
+      strip.addEventListener("pointerleave", () => { cycle.hold = false; });
+      strip.addEventListener("focusin", () => { cycle.hold = true; });
+      strip.addEventListener("focusout", () => { cycle.hold = false; });
+    }
+    const tick = now => {
+      const dt = now - cycle.last;
+      cycle.last = now;
+      if (!cycle.hold && cycle.heroVisible && !document.hidden) cycle.elapsed += Math.min(dt, 1000);   // cap: no jump when the page wakes up
+      if (cycle.elapsed >= CYCLE_MS) {
+        cycle.elapsed = 0;
+        showInHero(ids[(ids.indexOf(heroShowing) + 1) % ids.length]);
+      }
+      const progress = cycle.elapsed / CYCLE_MS;
+      document.querySelectorAll(".ls-item").forEach(b => {
+        b.style.setProperty("--progress", b.dataset.asset === heroShowing ? progress.toFixed(3) : 0);
+      });
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
   }
 
   function select(id, byUser = true) {
     const asset = assets.find(a => a.id === id);
     if (!asset) return;
-    if (byUser) picked = true;
-    showInHero(id, byUser);
+    showInHero(id);
+    if (byUser) restartCycle();
     if (current === id) return;
     current = id;
     document.querySelectorAll(".card").forEach(c => c.setAttribute("aria-pressed", String(c.dataset.asset === id)));

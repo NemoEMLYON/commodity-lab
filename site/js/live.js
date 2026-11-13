@@ -140,8 +140,9 @@
     const items = strip.querySelector(".live-strip-items");
     items.innerHTML = live.today.map(t => {
       const a = assets.find(x => x.id === t.id);
-      return `<button type="button" class="ls-item" data-asset="${t.id}" aria-pressed="false">` +
-             `<i style="background:${h.colors[t.id]}"></i>${a.ticker} <b class="num">${h.pct(t.forecast_vol, 0)}</b></button>`;
+      return `<button type="button" class="ls-item" data-asset="${t.id}" aria-pressed="false" ` +
+             `style="--c:${h.colors[t.id]}"><i style="background:${h.colors[t.id]}"></i>${a.ticker} ` +
+             `<b class="num">${h.pct(t.forecast_vol, 0)}</b><span class="ls-bar" aria-hidden="true"></span></button>`;
     }).join("");
     items.addEventListener("click", e => {
       const b = e.target.closest(".ls-item");
