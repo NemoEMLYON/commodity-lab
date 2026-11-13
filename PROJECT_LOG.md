@@ -95,6 +95,14 @@ Newest session first. Each entry: done / next / decisions / open issues.
   label but not the material (the call had been moved out of showInHero).
   Note for tests: software rendering runs the animations ~3x slower (dt is
   capped), so captures need ~10 s after a click.
+- Bug (student): the shapes looked almost transparent. Cause: rays that ran
+  out of march steps were faded like a soft silhouette (curves visible
+  through the ingot). Fixed (more steps for shapes, distance-scaled
+  tolerance, exhausted rays inside the bound = hit); checked on a white
+  background (opaque). The fix's extra code halved the drop's frame rate
+  (36 -> 13 fps software): shader split into a liquid and a shapes
+  program, back to 34-36 fps. The scroll fade was ruled out (opacity back
+  to 1 at the top, measured).
 - Liquid glass (js/glass.js): floating glass nav pill, hero strip and
   material label, map badge and tooltip; real refraction in Chrome/Edge via
   per-element SVG displacement filters, frosted fallback elsewhere.

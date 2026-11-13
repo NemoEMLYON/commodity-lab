@@ -249,6 +249,12 @@ implied vol same day).
   signed distance functions in the same shader, blended with the liquid
   (u_morph: melt to liquid, switch shape, form), turned towards the cursor
   (yaw/pitch spring) with a slow spin. The automatic cycle keeps the drop.
+  Two shader programs (#define SHAPES 0/1): the shapes code behind a
+  uniform test halved the drop's frame rate (ANGLE/GPUs may not skip it);
+  the shapes program is compiled 3 s after load. Ray march: up to 120 steps
+  (64 for the drop), hit tolerance 0.001 x (1 + t); a ray that runs out of
+  steps INSIDE the bounding sphere counts as a hit (fading those made the
+  detailed shapes semi-transparent: student's report, checked on white).
   CSS fallback. Under
   prefers-reduced-motion the metal still moves, slowly (time x0.35, smaller
   wander; the student's Windows has "Animation effects" off, which froze it);

@@ -121,6 +121,7 @@
       return mix(b, a, h) - k * h * (1.0 - h);
     }
 
+#if SHAPES
     // ---- Shapes ("the material takes the form of the commodity") ----
     // Each shape is a signed distance function: distance to its surface,
     // negative inside. Blending two of them gives a melting transition.
@@ -248,6 +249,7 @@
       if (u_shape > 0.5) return ingot(p);
       return 1e3;
     }
+#endif
 
     float map(vec3 p) {
       float t = u_time * (0.28 + 0.35 * u_agit);
@@ -267,7 +269,9 @@
       d = smin(d, length(p - c3) - 0.40, 0.50);
 
       // Liquid -> shape: interpolate the two distance functions.
+#if SHAPES
       if (u_morph > 0.001) d = mix(d, shapeSDF(u_rot * (p - vec3(0.0, u_bob, 0.0))), u_morph);
+#endif
 
       // Surface ripples: amplitude and frequency grow with volatility
       // (softer on a shape, so it stays readable).
@@ -311,18 +315,28 @@
       float t = max(-b - sqrt(disc), 0.0);
       float tFar = -b + sqrt(disc);
 
+      // March until the surface (tolerance grows with distance) or out of
+      // the bounding sphere. Detailed shapes need more, smaller steps.
       float d = 1.0, dmin = 1e3, tmin = t;
-      for (int i = 0; i < 64; i++) {
+      bool hit = false;
+      for (int i = 0; i < 120; i++) {
         d = map(ro + rd * t);
         if (d < dmin) { dmin = d; tmin = t; }
-        if (d < 0.001 || t > tFar) break;
-        t += d * (0.9 - 0.3 * u_morph);    // smaller steps on the detailed shapes
+        if (d < 0.001 * (1.0 + t)) { hit = true; break; }
+        if (t > tFar) break;
+        if (i >= 64 && u_morph < 0.01) break;     // the liquid drop needs no more
+        t += d * (0.9 - 0.3 * u_morph);
       }
 
-      // Soft edge: shade the closest point, fade it out over a few pixels.
-      float alpha = d < 0.001 ? 1.0 : smoothstep(0.012, 0.0, dmin);
+      // Alpha: 1 on the surface. A ray that left the bounding sphere is a
+      // miss: shade its closest point and fade it over a few pixels (soft
+      // silhouette). A ray that ran out of steps INSIDE the sphere is creeping
+      // along the surface: count it as a hit. (Before, those rays were faded
+      // too, and the detailed shapes looked semi-transparent.)
+      bool escaped = !hit && t > tFar;
+      float alpha = escaped ? smoothstep(0.012, 0.0, dmin) : (hit ? 1.0 : smoothstep(0.05, 0.0, dmin));
       if (alpha <= 0.0) { gl_FragColor = vec4(0.0); return; }
-      vec3 p = ro + rd * (d < 0.001 ? t : tmin);
+      vec3 p = ro + rd * (hit ? t : tmin);
       vec3 n = normalAt(p);
       vec3 r = reflect(rd, n);
       float cosv = max(dot(-rd, n), 0.0);
@@ -330,8 +344,10 @@
 
       // Corn husk leaves: greener than the kernels.
       vec3 tint = u_tint;
+#if SHAPES
       if (u_shape > 4.5 && cornLeaves(u_rot * (p - vec3(0.0, u_bob, 0.0))) < 0.02)
         tint = mix(tint, vec3(0.74, 0.86, 0.44), u_morph);   // a lighter green-gold: the inside faces the dark studio
+#endif
       vec3 c = studio(r, u_rough) * tint * 1.9 + fres * vec3(1.0, 0.95, 0.85) * 0.25 * tint;
       c *= mix(1.0, 0.28, u_dark);                                   // oil: black, glossy
       vec3 film = 0.5 + 0.5 * cos(6.2832 * (cosv * 1.6 + vec3(0.0, 0.33, 0.67)));
@@ -398,28 +414,49 @@
     return [x, y, 0.25];
   }
 
+  // Two versions of the same shader: without the shapes (the liquid drop,
+  // most of the time) and with them. Some GPUs and ANGLE (Chrome on
+  // Windows) do not skip unused code behind a uniform test, so carrying the
+  // shapes all the time halved the frame rate even for the drop.
+  const UNIFORMS = ["u_res", "u_time", "u_pull", "u_vel", "u_tint", "u_agit", "u_rough", "u_dark",
+                    "u_irid", "u_shape", "u_morph", "u_rot", "u_bob"];
+
+  function makeProgram(gl, withShapes) {
+    const prog = gl.createProgram();
+    gl.attachShader(prog, compile(gl, gl.VERTEX_SHADER, VERT));
+    gl.attachShader(prog, compile(gl, gl.FRAGMENT_SHADER, `#define SHAPES ${withShapes ? 1 : 0}\n` + FRAG));
+    gl.bindAttribLocation(prog, 0, "p");             // same attribute slot in both programs
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+    const uniforms = {};
+    UNIFORMS.forEach(u => { uniforms[u] = gl.getUniformLocation(prog, u); });   // null if unused: harmless
+    return { prog, uniforms };
+  }
+
+  // The shape program is compiled when first needed (or shortly after load).
+  function shapesProgram() {
+    if (!metal.progShapes) {
+      try { metal.progShapes = makeProgram(metal.gl, true); }
+      catch (err) { console.error(err); metal.progShapes = metal.progLiquid; }   // shapes off, drop still works
+    }
+    return metal.progShapes;
+  }
+
   function initMetal(canvas) {
     const gl = canvas.getContext("webgl", { premultipliedAlpha: true, antialias: false });
     if (!gl) { document.documentElement.classList.add("no-webgl"); return false; }
     try {
-      const prog = gl.createProgram();
-      gl.attachShader(prog, compile(gl, gl.VERTEX_SHADER, VERT));
-      gl.attachShader(prog, compile(gl, gl.FRAGMENT_SHADER, FRAG));
-      gl.linkProgram(prog);
-      gl.useProgram(prog);
+      metal.progLiquid = makeProgram(gl, false);
       const buf = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, buf);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-      const loc = gl.getAttribLocation(prog, "p");
-      gl.enableVertexAttribArray(loc);
-      gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-      ["u_res", "u_time", "u_pull", "u_vel", "u_tint", "u_agit", "u_rough", "u_dark", "u_irid",
-       "u_shape", "u_morph", "u_rot", "u_bob"]
-        .forEach(u => { metal.uniforms[u] = gl.getUniformLocation(prog, u); });
+      gl.enableVertexAttribArray(0);
+      gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
     } catch (err) {
       document.documentElement.classList.add("no-webgl");
       return false;
     }
+    setTimeout(() => { if (metal.gl) shapesProgram(); }, 3000);   // compile ahead, off the first paint
     metal.gl = gl;
     metal.canvas = canvas;
 
@@ -507,10 +544,14 @@
     const dt = Math.min((now - metal.last) / 1000, 1 / 20);
     adapt(now - metal.last);
     metal.last = now;
-    const { gl, canvas, uniforms } = metal;
+    const { gl, canvas } = metal;
 
     if (metal.visible) {
       step(dt);
+      const needShapes = metal.shape !== 0 || metal.shapeGoal !== 0 || metal.morph > 0.001;
+      const program = needShapes ? shapesProgram() : metal.progLiquid;
+      gl.useProgram(program.prog);
+      const uniforms = program.uniforms;
       const base = window.innerWidth < 760 ? 0.75 : 1;   // lighter on phones
       const scale = dpr * base * metal.scale;
       const w = Math.round(canvas.clientWidth * scale), h = Math.round(canvas.clientHeight * scale);
