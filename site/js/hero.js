@@ -109,12 +109,144 @@
     uniform float u_rough;    // 0 mirror .. 1 satin
     uniform float u_dark;     // 0 metal .. 1 black liquid (oil)
     uniform float u_irid;     // thin-film iridescence
+    uniform float u_shape;    // 0 liquid only, 1 ingot, 2 barrel, 3 coil, 4 gas bottle, 5 corn cob
+    uniform float u_morph;    // 0 liquid .. 1 shape
+    uniform mat3 u_rot;       // orientation of the shape (turns towards the cursor)
+    uniform float u_bob;      // gentle floating
 
     const float BOUND = 1.5;  // radius of a sphere containing the whole object
 
     float smin(float a, float b, float k) {
       float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
       return mix(b, a, h) - k * h * (1.0 - h);
+    }
+
+    // ---- Shapes ("the material takes the form of the commodity") ----
+    // Each shape is a signed distance function: distance to its surface,
+    // negative inside. Blending two of them gives a melting transition.
+
+    float sdEllipsoid(vec3 p, vec3 r) {          // approximate, good enough here
+      float k0 = length(p / r), k1 = length(p / (r * r));
+      return k0 * (k0 - 1.0) / k1;
+    }
+    vec3 rotY(vec3 p, float a) { float c = cos(a), s = sin(a); return vec3(c * p.x + s * p.z, p.y, -s * p.x + c * p.z); }
+    vec3 rotZ(vec3 p, float a) { float c = cos(a), s = sin(a); return vec3(c * p.x - s * p.y, s * p.x + c * p.y, p.z); }
+
+    // Corn: a cob covered with kernels in staggered rows, and three husk leaves.
+    // One husk leaf: a thin curved sheet that hugs the cob at the base and
+    // peels away towards its pointed tip, with fine longitudinal veins.
+    //   center: angle around the cob, yTip: height of the tip,
+    //   peel: how far it opens, width: half-width at the base (radians)
+    float husk(vec3 p, float center, float yTip, float peel, float width) {
+      float yBase = -0.82;
+      float u = clamp((p.y - yBase) / (yTip - yBase), 0.0, 1.0);   // 0 base .. 1 tip
+      float cobR = 0.25 * sqrt(max(1.0 - (p.y / 0.74) * (p.y / 0.74), 0.0));
+      float ang = atan(p.z, p.x);
+      float da = mod(ang - center + 3.14159, 6.28318) - 3.14159;
+      float R = max(cobR, 0.10) + 0.018 + peel * u * u;            // hugs, then opens
+      R += 0.005 * sin(da * 48.0);                                  // veins
+      float shell = abs(length(p.xz) - R) - 0.013;
+      float halfW = width * pow(1.0 - u, 0.8);                      // tapers to a point
+      float side = (abs(da) - halfW) * R;
+      float ends = max(yBase - p.y, p.y - yTip);
+      return max(shell, max(side, ends));
+    }
+    float cornLeaves(vec3 p) {
+      float d = husk(p, 0.4, 0.30, 0.55, 0.95);
+      d = min(d, husk(p, 2.1, 0.52, 0.35, 0.85));
+      d = min(d, husk(p, 3.6, 0.10, 0.70, 0.90));
+      d = min(d, husk(p, 5.1, 0.42, 0.45, 0.80));
+      // Short stalk under the cob
+      float stalk = max(length(p.xz) - 0.075, abs(p.y + 0.90) - 0.12);
+      return min(d, stalk);
+    }
+    float corn(vec3 p) {
+      float body = sdEllipsoid(p, vec3(0.25, 0.74, 0.25));
+      float rowH = 0.058, sector = 6.2832 / 18.0;            // 18 straight rows around
+      float ang = atan(p.z, p.x);
+      float k = floor(ang / sector + 0.5);
+      float row = floor(p.y / rowH + 0.5);
+      // Position inside the kernel's cell, from -1 to 1 on each side
+      vec2 cell = vec2((ang - k * sector) / (0.5 * sector), (p.y - row * rowH) / (0.5 * rowH));
+      // Rounded-square kernel: flat top, narrow grooves between kernels
+      float edge = max(abs(cell.x), abs(cell.y));
+      float kernel = smoothstep(1.0, 0.62, edge);
+      float kernels = body - 0.030 * kernel * smoothstep(0.72, 0.45, abs(p.y));
+      return min(kernels, cornLeaves(p));
+    }
+    float sdBox(vec3 p, vec3 b) {
+      vec3 q = abs(p) - b;
+      return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
+    }
+    float sdCapsule(vec3 p, vec3 a, vec3 b, float r) {
+      vec3 pa = p - a, ba = b - a;
+      float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+      return length(pa - ba * h) - r;
+    }
+
+    // Gold: a trapezoidal ingot (narrower on top), soft edges, a stamp on top.
+    float ingot(vec3 p) {
+      float h = 0.17;
+      float t = clamp((p.y + h) / (2.0 * h), 0.0, 1.0);         // 0 bottom .. 1 top
+      vec2 halfSize = mix(vec2(0.66, 0.31), vec2(0.54, 0.21), t);
+      vec3 q = vec3(abs(p.x) - halfSize.x, abs(p.y) - h, abs(p.z) - halfSize.y);
+      float d = (length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0)) * 0.94 - 0.025;
+      float stamp = sdBox(p - vec3(0.0, h + 0.005, 0.0), vec3(0.30, 0.018, 0.10));
+      return max(d, -stamp);
+    }
+
+    // Oil: a steel drum, slightly bulging, two rolling hoops, a rimmed lid
+    // and a bung.
+    float barrel(vec3 p) {
+      float h = 0.62;
+      float R = 0.40 + 0.035 * (1.0 - (p.y / h) * (p.y / h));
+      float r = length(p.xz);
+      float d = max(r - R, abs(p.y) - h) + 0.0;
+      d = smin(d, length(vec2(r - 0.43, p.y - 0.22)) - 0.028, 0.02);   // hoops
+      d = smin(d, length(vec2(r - 0.43, p.y + 0.22)) - 0.028, 0.02);
+      d = smin(d, length(vec2(r - 0.40, abs(p.y) - h)) - 0.03, 0.02); // rims
+      d = max(d, -max(r - 0.35, abs(p.y - h) - 0.03));                // lid recess
+      float bung = max(length(p.xz - vec2(0.2, 0.08)) - 0.05, abs(p.y - h + 0.01) - 0.035);
+      return min(d, bung);
+    }
+
+    // Copper: wire wound in a helix on a spool between two flanges, and a
+    // loose end of wire.
+    float coil(vec3 p) {
+      float r = length(p.xz);
+      float ang = atan(p.z, p.x);
+      float pitch = 0.055;
+      float phase = (p.y - ang / 6.2832 * pitch) / pitch * 6.2832;   // helical turns
+      float wire = max(r - 0.43 - 0.016 * cos(phase), abs(p.y) - 0.42);
+      float flanges = max(r - 0.55, abs(abs(p.y) - 0.46) - 0.035);
+      float core = max(r - 0.16, abs(p.y) - 0.5);
+      float d = min(min(wire, flanges), core);
+      d = min(d, sdCapsule(p, vec3(0.43, 0.30, 0.04), vec3(0.62, 0.55, 0.30), 0.02));   // loose end
+      return d - 0.004;
+    }
+
+    // Natural gas: a cylinder with rounded shoulders, a foot ring, a neck,
+    // a valve and its protective collar.
+    float bottle(vec3 p) {
+      float body = sdCapsule(p, vec3(0.0, -0.36, 0.0), vec3(0.0, 0.36, 0.0), 0.35);
+      float r = length(p.xz);
+      float foot = max(abs(r - 0.30) - 0.03, abs(p.y + 0.72) - 0.07);
+      float neck = max(r - 0.08, abs(p.y - 0.78) - 0.08);
+      float valve = max(r - 0.11, abs(p.y - 0.88) - 0.04);
+      float collar = max(abs(r - 0.20) - 0.018, abs(p.y - 0.86) - 0.12);
+      collar = max(collar, -(abs(p.x) - 0.07));                       // two openings
+      float d = min(body, foot);
+      d = smin(d, neck, 0.05);
+      return min(d, min(valve, collar));
+    }
+
+    float shapeSDF(vec3 p) {
+      if (u_shape > 4.5) return corn(p);
+      if (u_shape > 3.5) return bottle((p + vec3(0.0, 0.14, 0.0)) / 0.9) * 0.9;   // smaller, lower: keeps the valve in frame
+      if (u_shape > 2.5) return coil(p);
+      if (u_shape > 1.5) return barrel(p);
+      if (u_shape > 0.5) return ingot(p);
+      return 1e3;
     }
 
     float map(vec3 p) {
@@ -134,8 +266,12 @@
       d = smin(d, length(q) - 0.30, 0.45);
       d = smin(d, length(p - c3) - 0.40, 0.50);
 
-      // Surface ripples: amplitude and frequency grow with volatility.
-      float a = 0.012 + 0.055 * u_agit;
+      // Liquid -> shape: interpolate the two distance functions.
+      if (u_morph > 0.001) d = mix(d, shapeSDF(u_rot * (p - vec3(0.0, u_bob, 0.0))), u_morph);
+
+      // Surface ripples: amplitude and frequency grow with volatility
+      // (softer on a shape, so it stays readable).
+      float a = (0.012 + 0.055 * u_agit) * (1.0 - 0.75 * u_morph);
       float f = 1.0 + 0.8 * u_agit;
       d += a * sin(p.x * 6.0 * f + t * 2.0) * sin(p.y * 5.0 * f - t * 1.7) * sin(p.z * 4.0 * f + t);
       return d;
@@ -180,7 +316,7 @@
         d = map(ro + rd * t);
         if (d < dmin) { dmin = d; tmin = t; }
         if (d < 0.001 || t > tFar) break;
-        t += d * 0.9;
+        t += d * (0.9 - 0.3 * u_morph);    // smaller steps on the detailed shapes
       }
 
       // Soft edge: shade the closest point, fade it out over a few pixels.
@@ -192,7 +328,11 @@
       float cosv = max(dot(-rd, n), 0.0);
       float fres = pow(1.0 - cosv, 3.0);
 
-      vec3 c = studio(r, u_rough) * u_tint * 1.9 + fres * vec3(1.0, 0.95, 0.85) * 0.25 * u_tint;
+      // Corn husk leaves: greener than the kernels.
+      vec3 tint = u_tint;
+      if (u_shape > 4.5 && cornLeaves(u_rot * (p - vec3(0.0, u_bob, 0.0))) < 0.02)
+        tint = mix(tint, vec3(0.74, 0.86, 0.44), u_morph);   // a lighter green-gold: the inside faces the dark studio
+      vec3 c = studio(r, u_rough) * tint * 1.9 + fres * vec3(1.0, 0.95, 0.85) * 0.25 * tint;
       c *= mix(1.0, 0.28, u_dark);                                   // oil: black, glossy
       vec3 film = 0.5 + 0.5 * cos(6.2832 * (cosv * 1.6 + vec3(0.0, 0.33, 0.67)));
       c += film * u_irid * (0.10 + 0.55 * fres) * (0.4 + studio(r, 0.6));  // thin film
@@ -220,6 +360,11 @@
              dark: m.dark, irid: m.irid, agit: agitation(vol || 0.2) };
   }
 
+  // Shape ids in the shader, and the tilt of each shape (radians) so it
+  // sits at an interesting angle: ingot, barrel, coil, gas bottle, corn cob.
+  const SHAPES = { gold: 1, oil: 2, copper: 3, natgas: 4, corn: 5 };
+  const TILT = { 1: 0.18, 2: 0.30, 3: 0.40, 4: 0.28, 5: 0.42 };
+
   const REST = [0.19, 0.06, 0.25];      // cursor sphere at rest (world units)
   const REACH = 0.85;                   // how far it can be pulled from the centre
 
@@ -227,6 +372,7 @@
     gl: null, canvas: null, uniforms: {},
     now: materialParams("gold", 0.2), goal: materialParams("gold", 0.2),
     pos: REST.slice(), vel: [0, 0], target: REST.slice(), lastPointer: -1e9,
+    shape: 0, shapeGoal: 0, morph: 0, spin: 0, yaw: 0, pitch: 0,
     visible: true, start: performance.now(), last: performance.now(),
     scale: 0.75, slow: 0, fast: 0
   };
@@ -267,7 +413,8 @@
       const loc = gl.getAttribLocation(prog, "p");
       gl.enableVertexAttribArray(loc);
       gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-      ["u_res", "u_time", "u_pull", "u_vel", "u_tint", "u_agit", "u_rough", "u_dark", "u_irid"]
+      ["u_res", "u_time", "u_pull", "u_vel", "u_tint", "u_agit", "u_rough", "u_dark", "u_irid",
+       "u_shape", "u_morph", "u_rot", "u_bob"]
         .forEach(u => { metal.uniforms[u] = gl.getUniformLocation(prog, u); });
     } catch (err) {
       document.documentElement.classList.add("no-webgl");
@@ -313,6 +460,25 @@
     }
     const ease = 1 - Math.exp(-dt * 2.2);          // material morph, ~0.5 s
     PARAMS.forEach(k => { metal.now[k] += (metal.goal[k] - metal.now[k]) * ease; });
+
+    // Shape: melt back to liquid, switch shape, then form the new one.
+    let morphGoal;
+    if (metal.shape !== metal.shapeGoal) {
+      morphGoal = 0;
+      if (metal.morph < 0.02) metal.shape = metal.shapeGoal;
+    } else {
+      morphGoal = metal.shape ? 1 : 0;
+    }
+    metal.morph += (morphGoal - metal.morph) * (1 - Math.exp(-dt * 2.4));
+
+    // Orientation: a slow spin, plus a turn towards the cursor when it moves.
+    metal.spin += dt * 0.35 * CALM;
+    const active = now - metal.lastPointer < IDLE_AFTER;
+    const lookYaw = active ? metal.target[0] * 0.7 : 0;
+    const lookPitch = active ? -metal.target[1] * 0.45 : 0;
+    const k = 1 - Math.exp(-dt * 3);
+    metal.yaw += (lookYaw - metal.yaw) * k;
+    metal.pitch += (lookPitch - metal.pitch) * k;
   }
 
   // Resolution follows the frame time. It starts at 75% of the screen's
@@ -322,6 +488,19 @@
     if (frameMs > 25) { metal.slow++; metal.fast = 0; } else if (frameMs < 18) { metal.fast++; metal.slow = 0; }
     if (metal.slow > 8 && metal.scale > 0.4) { metal.scale = Math.max(0.4, metal.scale * 0.8); metal.slow = 0; }
     if (metal.fast > 90 && metal.scale < 1) { metal.scale = Math.min(1, metal.scale + 0.1); metal.fast = 0; }
+  }
+
+  // World -> shape rotation (column-major 3x3 for WebGL): yaw around y,
+  // pitch around x, and a fixed tilt so long shapes sit diagonally.
+  function rotation(yaw, pitch, tilt) {
+    const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+    const ct = Math.cos(tilt), st = Math.sin(tilt);
+    const Ry = [[cy, 0, sy], [0, 1, 0], [-sy, 0, cy]];
+    const Rx = [[1, 0, 0], [0, cp, -sp], [0, sp, cp]];
+    const Rz = [[ct, -st, 0], [st, ct, 0], [0, 0, 1]];
+    const mul = (A, B) => A.map((row, i) => B[0].map((_, j) => row.reduce((s, v, n) => s + v * B[n][j], 0)));
+    const M = mul(Ry, mul(Rx, Rz));
+    return new Float32Array([M[0][0], M[1][0], M[2][0], M[0][1], M[1][1], M[2][1], M[0][2], M[1][2], M[2][2]]);
   }
 
   function frame(now) {
@@ -347,6 +526,11 @@
       gl.uniform1f(uniforms.u_rough, m.rough);
       gl.uniform1f(uniforms.u_dark, m.dark);
       gl.uniform1f(uniforms.u_irid, m.irid);
+      gl.uniform1f(uniforms.u_shape, metal.shape);
+      gl.uniform1f(uniforms.u_morph, metal.morph);
+      gl.uniformMatrix3fv(uniforms.u_rot, false,
+        rotation(metal.spin + metal.yaw, metal.pitch + (metal.shape === 1 ? 0.35 : 0), TILT[metal.shape] || 0));
+      gl.uniform1f(uniforms.u_bob, 0.05 * Math.sin(CALM * (now - metal.start) / 1000 * 0.9));
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     }
     requestAnimationFrame(frame);
@@ -372,8 +556,12 @@
       initMetal(document.querySelector(".hero-metal"));
       playIntro();
     },
-    // The object takes the look of `id` and ripples as much as `vol`.
-    setMaterial(id, vol) { metal.goal = materialParams(id, vol); },
+    // The object takes the look of `id` and ripples as much as `vol`;
+    // with `withShape`, it also takes the commodity's shape.
+    setMaterial(id, vol, withShape) {
+      metal.goal = materialParams(id, vol);
+      metal.shapeGoal = withShape ? (SHAPES[id] || 0) : 0;
+    },
     agitation
   };
 })();

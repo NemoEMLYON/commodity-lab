@@ -243,7 +243,13 @@ implied vol same day).
   60% turbulent), cursor sphere on a time-based spring (K 70, C 11) with
   the cursor unprojected onto the object's plane (reach 0.85), adaptive
   resolution (starts at 75%, 40-100%). The hero cycles through the five
-  materials until the visitor picks one. CSS fallback. Under
+  materials until the visitor picks one. A commodity PICKED by the
+  visitor also takes its shape (S14, student's choices): gold ingot, oil
+  barrel, copper wire coil, gas bottle, corn cob with husk leaves; all
+  signed distance functions in the same shader, blended with the liquid
+  (u_morph: melt to liquid, switch shape, form), turned towards the cursor
+  (yaw/pitch spring) with a slow spin. The automatic cycle keeps the drop.
+  CSS fallback. Under
   prefers-reduced-motion the metal still moves, slowly (time x0.35, smaller
   wander; the student's Windows has "Animation effects" off, which froze it);
   intro, scroll effects, hero cycle and map fly-in stay off. Benchmark (software GL, 1440x900): 12 -> 25 fps.

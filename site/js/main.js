@@ -186,9 +186,12 @@
   const NAMES = Object.fromEntries(assets.map(a => [a.id, a.name]));
   let picked = false, heroShowing = null;
 
-  function showInHero(id) {
+  // withShape: a commodity picked by the visitor takes its shape; the
+  // automatic cycle keeps the liquid drop.
+  function showInHero(id, withShape = false) {
     heroShowing = id;
     const vol = volFor(id);
+    if (window.Hero) window.Hero.setMaterial(id, vol, withShape);
     const live = data.live && data.live.today.find(x => x.id === id);
     document.querySelector(".hm-name").textContent = NAMES[id];
     document.querySelector(".hm-name").style.color = colors[id];
@@ -213,12 +216,11 @@
     const asset = assets.find(a => a.id === id);
     if (!asset) return;
     if (byUser) picked = true;
-    showInHero(id);
+    showInHero(id, byUser);
     if (current === id) return;
     current = id;
     document.querySelectorAll(".card").forEach(c => c.setAttribute("aria-pressed", String(c.dataset.asset === id)));
     document.documentElement.style.setProperty("--material", `var(${MATERIAL_TOKEN[asset.material]})`);
-    if (window.Hero) window.Hero.setMaterial(id, volFor(id));
 
     document.querySelector(".vol-head h3").textContent = `${asset.name} volatility`;
     document.querySelector(".vol-head p").textContent =

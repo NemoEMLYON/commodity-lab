@@ -87,6 +87,14 @@ Newest session first. Each entry: done / next / decisions / open issues.
   symptom). Now the metal moves gently in that mode (time x0.35): checked
   with an emulated setting, 21% of the object's pixels change in 3 s vs 43%
   without the setting.
+- Shapes: the picked commodity's metal takes its form (ingot, barrel,
+  coil, gas bottle, corn cob), chosen by the student; corn prototyped
+  first (kernels redone as tight rounded squares, then husk leaves that hug
+  and peel to a point), validated, then the four others. The cycle keeps
+  the drop. Bug fixed on the way: the automatic hero cycle changed the
+  label but not the material (the call had been moved out of showInHero).
+  Note for tests: software rendering runs the animations ~3x slower (dt is
+  capped), so captures need ~10 s after a click.
 - Liquid glass (js/glass.js): floating glass nav pill, hero strip and
   material label, map badge and tooltip; real refraction in Chrome/Edge via
   per-element SVG displacement filters, frosted fallback elsewhere.
