@@ -13,9 +13,13 @@ source("R/04_walkforward.R")
 source("R/06_backtest.R")
 source("R/08_export.R")
 source("R/09_live.R")
+source("R/10_extensions.R")
 
 features    <- readRDS(FEATURES_PATH)
 predictions <- readRDS(PREDICTIONS_PATH)
+# har_x (live since S16) comes from extensions.R, not from pipeline.R
+e1 <- readRDS(EXTENSIONS_PATH)$e1$predictions
+predictions <- rbind(predictions[, names(e1)], e1)
 
 frozen <- freeze_models(features)
 message("Frozen year: ", frozen$year,

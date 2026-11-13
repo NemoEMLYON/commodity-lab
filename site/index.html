@@ -102,7 +102,9 @@
           <div class="score" id="live-track" role="table" aria-label="Live forecast quality by model"></div>
           <figcaption class="chart-note">Loss vs HAR: QLIKE ratio on the days whose outcome is known, below 1.00
             beats HAR. In range: share of days where the outcome fell inside the 80% range (80% is well
-            calibrated). Naive and EWMA have no range.</figcaption>
+            calibrated). Naive and EWMA have no range. Models under the dashed line joined the live job after
+            the study's results were known: they are scored only on forecasts made since, against HAR on the
+            same days.</figcaption>
         </figure>
       </div>
 

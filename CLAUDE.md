@@ -31,6 +31,11 @@ Course: "Machine Learning with R", emlyon. Mid-project oral: 2026-12-31
   In S14, re-sending from a path already used wrote the OLD content while
   reporting success (02_features.R, 09_live.R, live.js, PROJECT_LOG.md,
   CLAUDE.md); a fresh path fixed it.
+- BEFORE every delivery, tell the student to CLOSE VS Code (or at least the
+  tabs of the delivered files): an open editor (auto save) writes its old
+  buffer back over the new file (S17: test_live.R and 09_live.R stayed old
+  until VS Code was closed). Probably also the cause of the S14 "stale
+  content" episodes.
 - Execution: Claude writes files into the project folder; the student runs
   them in VS Code (R terminal) and pastes outputs. Claude's cloud workspace
   has R but no access to Yahoo, FRED or EIA, so it can only test logic
@@ -255,6 +260,10 @@ predictions.rds, never rewrites them) -> `data/processed/extensions.rds`.
   forecasts: HAR + EWMA, HAR + har_x, HAR + EWMA + lasso_b2_iv. The two
   best on pooled QLIKE over 2017-2025 are frozen and added to the live job;
   their live record starts the day they are added.
+  RESULT (S17): chosen comb_har_harx (0.909) and comb_har_ewma_lasso
+  (0.958); both significantly worse than har_x alone (0.880) pooled.
+- Decision after E1 (S16, student, not pre-registered): har_x joins the
+  live job as a forward test from 2026-11-13. New data, so no snooping.
 - E3 (S18) Level calibration: Duan smearing (variance = exp(2 pred) x mean
   of exp(2 x in-sample residual)) vs the lognormal correction; Lasso
   lambda.min vs 1-SE. Kept for the extensions if pooled QLIKE of HAR improves.
@@ -390,6 +399,16 @@ predictions.rds, never rewrites them) -> `data/processed/extensions.rds`.
   (`data/processed/live_snapshot.rds`, kept between runs by actions/cache)
   -> pipeline cache (data/raw) -> previous live.json marked offline.
   `LIVE_DISABLED=1` forces offline mode.
+- Forward test (S16-S17): post hoc models join the live job with a date
+  (`LIVE_FORWARD_FROM`) and are scored only on forecasts made from that
+  date, against HAR on the SAME days (`live_track_record`). har_x since
+  2026-11-13 (decided that day before the US close; frozen with the others
+  on the 2026 training rows, checked against extensions.rds by
+  freeze_models.R). Combinations (`LIVE_COMBINATIONS`, mean of members'
+  variance forecasts, no interval): comb_har_harx and comb_har_ewma_lasso
+  since 2026-11-13. A frozen file
+  without a model just skips it (`predict_frozen`). Site: rows under a
+  dashed line "Forward test", "pending" until the first outcome (21 days).
 - Headline model per asset: HAR, except oil (Lasso + OVX). 80% interval:
   lognormal, log vol ~ N(pred, resid_var).
 - Track record since the first live day: QLIKE / HAR, RMSE, 80% interval

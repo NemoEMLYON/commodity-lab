@@ -6,8 +6,14 @@
   "use strict";
 
   const MODEL_LABELS = { naive: "Naive", ewma: "EWMA", har: "HAR",
-                         lasso_b2_iv: "Lasso + implied vol", rf_b2_iv: "Forest + implied vol" };
+                         lasso_b2_iv: "Lasso + implied vol", rf_b2_iv: "Forest + implied vol",
+                         har_x: "HAR + implied vol", comb_har_ewma: "Mix HAR · EWMA",
+                         comb_har_harx: "Mix HAR · HAR + IV", comb_har_ewma_lasso: "Mix HAR · EWMA · Lasso" };
   const MODEL_ORDER = ["har", "lasso_b2_iv", "rf_b2_iv", "ewma", "naive"];
+  // Added after the study (post hoc): scored only on forecasts made since
+  // the day they joined the live job (live.run.forward_from).
+  const FORWARD_ORDER = ["har_x", "comb_har_ewma", "comb_har_harx", "comb_har_ewma_lasso"];
+  const label = id => MODEL_LABELS[id] || id;
   const STALE_AFTER = 3;          // weekdays without an update before we warn
   const HORIZON = 21;
 
@@ -261,7 +267,9 @@
   // ---- Live record table -------------------------------------------------------------
 
   function track() {
-    const rows = MODEL_ORDER.map(id => live.track.find(r => r.asset === asset && r.model === id)).filter(Boolean);
+    const find = id => live.track.find(r => r.asset === asset && r.model === id);
+    const rows = MODEL_ORDER.map(find).filter(Boolean);
+    const forward = FORWARD_ORDER.map(find).filter(Boolean);
     const lo = 0.6, hi = 1.4;
     const pos = v => 100 * (Math.min(Math.max(v, lo), hi) - lo) / (hi - lo);
     const headline = live.run.headline[asset];
@@ -270,25 +278,39 @@
       `<div class="sc-row lt-row sc-head" role="row"><span role="columnheader">Model</span>` +
       `<span role="columnheader">Loss vs HAR</span><span role="columnheader">In range</span>` +
       `<span role="columnheader">Days</span></div>` +
-      rows.map(r => {
-        const v = r.qlike_vs_har;
-        const left = Math.min(pos(v), pos(1)), w = Math.abs(pos(v) - pos(1));
-        const cov = r.coverage80 === null ? "–" : `${Math.round(r.coverage80 * 100)}%`;
-        return `<div class="sc-row lt-row ${r.model === headline ? "is-headline" : ""}" role="row">
-          <span class="sc-name" role="cell">${MODEL_LABELS[r.model]}</span>
-          <span class="sc-bar" role="cell" aria-label="${v.toFixed(2)} times HAR's loss">
-            <span class="sc-track"><span class="sc-one" style="left:${pos(1)}%"></span>
-            <span class="sc-fill ${v < 1 ? "is-better" : ""}" style="left:${left}%;width:${w}%"></span></span>
-            <span class="num">${r.model === "har" ? "1.00" : v.toFixed(2)}</span></span>
-          <span class="num" role="cell">${cov}</span>
+      rows.map(row).join("") +
+      (forward.length ? `<div class="lt-divider" role="row"><span role="cell">Forward test: added after the study, ` +
+        `scored from ${shortDate(forward[0].scored_from)}</span></div>` + forward.map(row).join("") : "");
+
+    function row(r) {
+      const v = r.qlike_vs_har;
+      const cov = r.coverage80 === null ? "–" : `${Math.round(r.coverage80 * 100)}%`;
+      if (v === null) {                     // no outcome known yet
+        return `<div class="sc-row lt-row is-pending" role="row">
+          <span class="sc-name" role="cell">${label(r.model)}</span>
+          <span class="sc-bar" role="cell"><span class="sc-track"><span class="sc-one" style="left:${pos(1)}%"></span></span>
+            <span class="num">pending</span></span>
+          <span class="num" role="cell">–</span>
           <span class="num" role="cell">${r.n_scored}</span>
         </div>`;
-      }).join("");
+      }
+      const left = Math.min(pos(v), pos(1)), w = Math.abs(pos(v) - pos(1));
+      return `<div class="sc-row lt-row ${r.model === headline ? "is-headline" : ""}" role="row">
+        <span class="sc-name" role="cell">${label(r.model)}</span>
+        <span class="sc-bar" role="cell" aria-label="${v.toFixed(2)} times HAR's loss">
+          <span class="sc-track"><span class="sc-one" style="left:${pos(1)}%"></span>
+          <span class="sc-fill ${v < 1 ? "is-better" : ""}" style="left:${left}%;width:${w}%"></span></span>
+          <span class="num">${r.model === "har" ? "1.00" : v.toFixed(2)}</span></span>
+        <span class="num" role="cell">${cov}</span>
+        <span class="num" role="cell">${r.n_scored}</span>
+      </div>`;
+    }
 
     const a = assets.find(x => x.id === asset);
     const pooled = id => live.track.find(r => r.asset === "all" && r.model === id);
     const ml = ["lasso_b2_iv", "rf_b2_iv"].map(pooled).filter(Boolean);
-    const best = rows.reduce((p, q) => (q.qlike_vs_har < p.qlike_vs_har ? q : p));
+    const best = rows.filter(r => r.qlike_vs_har !== null)
+                     .reduce((p, q) => (q.qlike_vs_har < p.qlike_vs_har ? q : p));
     $("#live-track-sub").textContent = `${a.name}, outcomes known since ${shortDate(live.run.live_from)}. ` +
       `Lowest loss so far: ${MODEL_LABELS[best.model]}` +
       (best.model === "har" ? ". " : ` (${best.qlike_vs_har.toFixed(2)}× HAR's). `) +

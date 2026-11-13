@@ -32,7 +32,25 @@ LIVE_MODELS <- list(
   model_ewma,
   model_har,
   make_lasso("lasso_b2_iv", b2_features),
-  make_rf("rf_b2_iv", b2_features, pooled = FALSE, min_node_size = LIVE_RF_MIN_NODE)
+  make_rf("rf_b2_iv", b2_features, pooled = FALSE, min_node_size = LIVE_RF_MIN_NODE),
+  extension_e1_models()[[1]]        # har_x, added in S16 (see LIVE_FORWARD_FROM)
+)
+
+# Forward test of post hoc extensions (S16-S17). These models were added to
+# the live job AFTER the study's results were known, so they are scored only
+# on forecasts made from the day they were added: new data no one had seen.
+# Their earlier 2026 forecasts exist (same frozen fit) but are not scored.
+# Both decisions were taken on 2026-11-13 before the US close.
+LIVE_FORWARD_FROM <- c(har_x               = "2026-11-13",
+                       comb_har_harx       = "2026-11-13",
+                       comb_har_ewma_lasso = "2026-11-13")
+
+# Combinations served live: name -> members (equal weights on variance).
+# The two best of extensions E2 on pooled QLIKE 2017-2025 (pre-registered
+# rule), chosen on 2026-11-13.
+LIVE_COMBINATIONS <- list(
+  comb_har_harx       = c("har", "har_x"),
+  comb_har_ewma_lasso = c("har", "ewma", "lasso_b2_iv")
 )
 
 # Model shown first for each asset: the one the study supports out of sample.
@@ -87,6 +105,27 @@ slim_fitted <- function(fitted) {
   fitted
 }
 
+# Add the live combinations to the frozen models' predictions. Same rule as
+# extensions E2: mean of the members' variance forecasts, on the days where
+# every member forecasts. No interval (resid_var = 0, like EWMA).
+add_live_combinations <- function(preds, combinations = LIVE_COMBINATIONS) {
+  out <- list(preds)
+  for (name in names(combinations)) {
+    members <- combinations[[name]]
+    parts <- lapply(members, function(m) preds[preds$model == m, ])
+    key   <- function(p) paste(p$asset, p$date)
+    common <- Reduce(intersect, lapply(parts, key))
+    parts <- lapply(parts, function(p) { p <- p[key(p) %in% common, ]; p[order(p$asset, p$date), ] })
+    comb <- parts[[1]]
+    comb$model        <- name
+    comb$pred_var     <- Reduce(`+`, lapply(parts, `[[`, "pred_var")) / length(parts)
+    comb$pred_log_vol <- log(comb$pred_var) / 2
+    comb$resid_var    <- 0
+    out[[length(out) + 1]] <- comb
+  }
+  do.call(rbind, out)
+}
+
 # Predictions of the frozen models on a features table (full or live).
 # One row per (asset, model, date) with all inputs present, from the first
 # day of the frozen year. Not from T0 + 1: the model is trained on targets
@@ -97,6 +136,7 @@ predict_frozen <- function(frozen, features, models = LIVE_MODELS) {
   for (model in models) {
     for (asset in ASSETS) {
       fitted <- frozen$fitted[[model$name]][[asset]]
+      if (is.null(fitted)) next          # model added after this file was frozen
       cols   <- if (is.null(fitted$features)) BASELINE_INPUTS[[model$name]] else fitted$features
       rows <- features[features$asset == asset & features$date >= frozen$first_test, ]
       rows <- rows[complete.cases(rows[, cols, drop = FALSE]), ]
@@ -300,33 +340,48 @@ interval_multipliers <- function(resid_var, z = INTERVAL_Z) {
   list(lo = exp(-z * s - s^2), hi = exp(z * s - s^2))
 }
 
-# Metrics since T0 on the days whose 21-day outcome is known.
-#   qlike_vs_har < 1: better than HAR over the live period
+# First day a model is scored live: the first day of the frozen year, or
+# the day a post hoc model was added (LIVE_FORWARD_FROM).
+scored_from <- function(model, first_test, forward_from = LIVE_FORWARD_FROM) {
+  if (model %in% names(forward_from)) as.Date(forward_from[[model]]) else as.Date(first_test)
+}
+
+# Metrics on the days whose 21-day outcome is known, from the day each
+# model is scored (scored_from).
+#   qlike_vs_har < 1: better than HAR ON THE SAME DAYS
 #   coverage80: share of days where realised vol fell inside the 80% interval
-live_track_record <- function(preds) {
+#   NA while a model has no scored day yet (its first outcome is 21 days away)
+live_track_record <- function(preds, first_test = min(preds$date),
+                              forward_from = LIVE_FORWARD_FROM) {
+  loss <- qlike(preds$realized_var, preds$pred_var)
   rows <- list()
   for (asset in c(ASSETS, "all")) {
     for (m in unique(preds$model)) {
-      p <- preds[preds$model == m & (asset == "all" | preds$asset == asset), ]
+      keep <- preds$model == m & (asset == "all" | preds$asset == asset) &
+              preds$date >= scored_from(m, first_test, forward_from)
+      p <- preds[keep, ]
       scored <- p[!is.na(p$target), ]
-      mult   <- interval_multipliers(scored$resid_var)
-      vol    <- sqrt(scored$pred_var)
-      real   <- exp(scored$target)
+      n <- nrow(scored)
+      # HAR on exactly the same (asset, date) pairs
+      har_keep <- preds$model == "har" & !is.na(preds$target) &
+                  paste(preds$asset, preds$date) %in% paste(scored$asset, scored$date)
+      mult <- interval_multipliers(scored$resid_var)
+      vol  <- sqrt(scored$pred_var)
+      real <- exp(scored$target)
       rows[[length(rows) + 1]] <- data.frame(
-        asset      = asset,
-        model      = m,
-        n_scored   = nrow(scored),
-        n_pending  = sum(is.na(p$target)),
-        qlike      = mean(qlike(scored$realized_var, scored$pred_var)),
-        rmse_log   = sqrt(mean((scored$pred_log_vol - scored$target)^2)),
-        coverage80 = if (all(scored$resid_var > 0))      # no interval for naive/EWMA
+        asset        = asset,
+        model        = m,
+        scored_from  = scored_from(m, first_test, forward_from),
+        n_scored     = n,
+        n_pending    = sum(is.na(p$target)),
+        qlike        = if (n > 0) mean(loss[keep & !is.na(preds$target)]) else NA_real_,
+        qlike_vs_har = if (n > 0) mean(loss[keep & !is.na(preds$target)]) / mean(loss[har_keep]) else NA_real_,
+        rmse_log     = if (n > 0) sqrt(mean((scored$pred_log_vol - scored$target)^2)) else NA_real_,
+        coverage80   = if (n > 0 && all(scored$resid_var > 0))   # no interval for naive/EWMA
           mean(real >= vol * mult$lo & real <= vol * mult$hi) else NA_real_)
     }
   }
-  out <- do.call(rbind, rows)
-  har <- out[out$model == "har", ]
-  out$qlike_vs_har <- out$qlike / har$qlike[match(out$asset, har$asset)]
-  out
+  do.call(rbind, rows)
 }
 
 # Today's forecast per asset: every model, the headline model with its 80%
@@ -397,10 +452,11 @@ live_payload <- function(snapshot, frozen, preds, live_features, run_at = Sys.ti
                t0         = frozen$t0,                 # last training date
                live_from  = frozen$first_test,         # first day the model existed
                frozen_year = frozen$year,
-               headline   = as.list(HEADLINE_MODEL)),
+               headline   = as.list(HEADLINE_MODEL),
+               forward_from = as.list(LIVE_FORWARD_FROM)),
     today     = today_table(preds, live_features),
     history   = live_history(preds),
-    track     = live_track_record(preds),
+    track     = live_track_record(preds, frozen$first_test),
     freshness = freshness_table(snapshot$data, snapshot$asof))
 }
 

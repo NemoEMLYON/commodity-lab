@@ -69,3 +69,65 @@ coef_wide <- function(coefs, asset) {
   out <- tapply(c1$estimate, list(c1$term, c1$test_year), identity)
   round(out[unique(c1$term), , drop = FALSE], 3)
 }
+
+
+# ---- E2: forecast combinations (S17) ------------------------------------------
+#
+# Fixed equal weights, nothing estimated: the combined variance forecast is
+# the mean of the members' variance forecasts (Jensen-corrected). Averaging
+# variances, not log vols, keeps the level of the members.
+
+E2_COMBINATIONS <- list(
+  comb_har_ewma       = c("har", "ewma"),
+  comb_har_harx       = c("har", "har_x"),
+  comb_har_ewma_lasso = c("har", "ewma", "lasso_b2_iv")
+)
+E2_SELECTION_YEARS <- 2017:2025   # the two best are chosen on these years only
+
+# One combination as prediction rows (same columns as walk_forward()).
+# Only the (asset, date) pairs where every member has a forecast.
+combine_predictions <- function(predictions, members, name) {
+  parts <- lapply(members, function(m) predictions[predictions$model == m, ])
+  key   <- function(p) paste(p$asset, p$date)
+  common <- Reduce(intersect, lapply(parts, key))
+  parts <- lapply(parts, function(p) { p <- p[key(p) %in% common, ]; p[order(p$asset, p$date), ] })
+
+  out <- parts[[1]]
+  out$model        <- name
+  out$pred_var     <- Reduce(`+`, lapply(parts, `[[`, "pred_var")) / length(parts)
+  out$pred_var_raw <- Reduce(`+`, lapply(parts, `[[`, "pred_var_raw")) / length(parts)
+  out$pred_log_vol <- log(out$pred_var) / 2      # log vol consistent with the variance
+  rownames(out) <- NULL
+  out
+}
+
+# The two combinations with the lowest pooled QLIKE on the selection years.
+select_combinations <- function(combined, years = E2_SELECTION_YEARS, n = 2) {
+  p <- combined[combined$test_year %in% years, ]
+  loss <- tapply(qlike(p$realized_var, p$pred_var), p$model, mean)
+  names(sort(loss))[seq_len(n)]
+}
+
+run_extension_e2 <- function(features, predictions, e1_predictions,
+                             combinations = E2_COMBINATIONS) {
+  base <- rbind(predictions[predictions$model %in% E1_REFERENCE_MODELS, names(e1_predictions)],
+                e1_predictions)
+  combined <- do.call(rbind, lapply(names(combinations), function(n)
+    combine_predictions(base, combinations[[n]], n)))
+  all_pred <- rbind(base, combined)
+  combos   <- names(combinations)
+
+  evaluation <- evaluate(all_pred)
+  bt_models  <- c("har", "ewma", "har_x", combos)
+  list(
+    predictions  = combined,
+    qlike_vs_har = wide_by_asset(evaluation, c("ewma", "lasso_b2_iv", "har_x", combos)),
+    var_ratio    = wide_by_asset(evaluation, c("har", "ewma", "har_x", combos), "var_ratio"),
+    dm_vs_har    = dm_wide(dm_table(all_pred, benchmark = "har"), c("har_x", combos)),
+    dm_vs_harx   = dm_wide(dm_table(all_pred[all_pred$model %in% c("har_x", combos), ],
+                                    benchmark = "har_x"), combos),
+    by_year      = evaluate_by_year(all_pred, c("har_x", combos)),
+    selected     = select_combinations(combined),
+    backtest     = backtest_summary(run_backtest(all_pred, features, models = bt_models))
+  )
+}

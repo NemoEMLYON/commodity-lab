@@ -2,6 +2,57 @@
 
 Newest session first. Each entry: done / next / decisions / open issues.
 
+## S17 — 2026-11-13 — E2 combinations + live forward test
+
+**Done (code, tested offline)**
+- `R/10_extensions.R`: `combine_predictions()` (mean of the members'
+  variance forecasts, common days only), `select_combinations()` (two best
+  pooled QLIKE on 2017-2025), `run_extension_e2()`: QLIKE / HAR,
+  var_ratio, DM vs HAR and vs har_x, by year, backtest. Printed by
+  extensions.R.
+- Live forward test (`R/09_live.R`): har_x added to LIVE_MODELS;
+  `LIVE_FORWARD_FROM` (har_x = 2026-11-13); `live_track_record()` scores
+  each model from its own start and compares with HAR on the same days
+  (mutation check: comparing with HAR over the whole period makes the test
+  fail); `add_live_combinations()`; `predict_frozen()` skips a model the
+  frozen file does not have yet. freeze_models.R checks har_x against
+  extensions.rds.
+- Site: live record shows forward-test models under a dashed line,
+  "pending" until their first outcome is known.
+- Tests: 84 tests, 206 checks, 0 failures; JS simulator 60/60.
+
+**E2 results on real data (post hoc, 2017-2026; PC: 206 checks pass)**
+
+  | | har_x | HAR+EWMA | HAR+har_x | HAR+EWMA+Lasso |
+  |---|---|---|---|---|
+  | QLIKE / HAR, all | 0.880 | 0.998 | 0.909 | 0.958 |
+  | DM vs HAR, all | -3.27 | -0.07 | -3.93 | -3.49 |
+  | DM vs har_x, all | | +2.19 | +2.05 | +2.08 |
+  | risk_rmse (vol targeting) | 0.0193 | 0.0173 | 0.0195 | 0.0197 |
+
+  HAR 0.0211, EWMA 0.0170 (best), oracle 0.0056.
+- Selected by the pre-registered rule (pooled QLIKE 2017-2025):
+  comb_har_harx and comb_har_ewma_lasso. Added to the live job from
+  2026-11-13 (LIVE_COMBINATIONS, LIVE_FORWARD_FROM).
+- Reading: no "combination puzzle" here. har_x alone is significantly
+  better than every combination pooled (DM +2.05 to +2.19): averaging
+  dilutes the one strong input. Exception corn, where har_x hurts and the
+  combinations are significantly better than har_x (DM -2.03 to -3.09).
+- QLIKE and the backtest disagree: EWMA is worst on QLIKE (1.12) but best
+  at holding 10% (risk_rmse 0.0170) because its level is right (var_ratio
+  1.000 vs HAR 0.880). The backtest rewards the level of the forecast more
+  than its ranking of days. E3 (calibration) and E6 (bootstrap) test this.
+- freeze_models.R: gap 0 on 885 days for all 6 models (har_x included).
+  live.R ran (last close 2026-11-12): har_x has no forecast yet; its first
+  is the 2026-11-13 close. Live vs pipeline features: target na_differ 100
+  = 5 assets x 20 days whose outcome became known after features.rds was
+  built (expected).
+
+**Next**
+- Student: re-run live.R (combinations), commit code + models/ + live.json
+  before the evening job (22:30 UTC).
+- S18: level calibration (E3).
+
 ## S16 — 2026-11-13 — Pre-registration + E1 "information or algorithm?"
 
 **Done**

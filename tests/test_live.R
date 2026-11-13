@@ -33,7 +33,7 @@ test_that("live features are identical to the pipeline's on every shared column"
 test_that("the frozen models reproduce the walk-forward forecasts of their year", {
   wf    <- walk_forward(features, LIVE_MODELS, test_years = TEST_YEAR)
   check <- check_frozen(frozen, features, wf)
-  expect_setequal(check$model, c("naive", "ewma", "har", "lasso_b2_iv", "rf_b2_iv"))
+  expect_setequal(check$model, c("naive", "ewma", "har", "lasso_b2_iv", "rf_b2_iv", "har_x"))
   expect_true(all(check$gap < 1e-12))
   expect_true(all(check$n_compared > 1000))
 })
@@ -75,12 +75,74 @@ test_that("a forecast does not change when later data changes or disappears", {
 
 test_that("the last 21 days of each asset are pending, the rest are scored", {
   preds <- predict_frozen(frozen, build_live_features(live_inputs))
-  track <- live_track_record(preds)
+  track <- live_track_record(preds, forward_from = character(0))   # every model from day 1
   per_asset <- track[track$asset != "all", ]
   expect_true(all(per_asset$n_pending == HORIZON))
   expect_equal(track$qlike_vs_har[track$model == "har"], rep(1, 6))
   expect_true(all(is.na(track$coverage80[track$model %in% c("naive", "ewma")])))
   expect_true(all(track$coverage80[track$model == "har"] > 0.5))
+})
+
+test_that("a model added later is scored only from that day, against HAR on the same days", {
+  preds <- predict_frozen(frozen, build_live_features(live_inputs))
+  added <- as.Date("2016-06-01")
+  track <- live_track_record(preds, forward_from = c(har_x = format(added)))
+
+  hx  <- preds[preds$model == "har_x" & preds$date >= added & !is.na(preds$target), ]
+  har <- preds[preds$model == "har" & !is.na(preds$target) &
+               paste(preds$asset, preds$date) %in% paste(hx$asset, hx$date), ]
+  row <- track[track$model == "har_x" & track$asset == "all", ]
+  expect_equal(row$n_scored, nrow(hx))
+  expect_equal(row$scored_from, added)
+  expect_equal(row$qlike_vs_har,
+               mean(qlike(hx$realized_var, hx$pred_var)) / mean(qlike(har$realized_var, har$pred_var)))
+  # The original models still start on the first live day
+  expect_equal(track$scored_from[track$model == "har" & track$asset == "all"], min(preds$date))
+})
+
+test_that("a model with no outcome known yet has no score, only pending days", {
+  preds <- predict_frozen(frozen, build_live_features(live_inputs))
+  last  <- max(preds$date)
+  added <- sort(unique(preds$date))[length(unique(preds$date)) - 9]   # 10 days before the end
+  track <- live_track_record(preds, forward_from = c(har_x = format(added)))
+  row <- track[track$model == "har_x" & track$asset == "oil", ]
+  expect_equal(row$n_scored, 0)
+  expect_equal(row$n_pending, 10)
+  expect_true(is.na(row$qlike_vs_har) && is.na(row$coverage80))
+  expect_true(last >= added)
+})
+
+test_that("live combinations average the members' variance forecasts", {
+  preds <- predict_frozen(frozen, build_live_features(live_inputs))
+  out <- add_live_combinations(preds, list(comb_har_ewma = c("har", "ewma")))
+  comb <- out[out$model == "comb_har_ewma", ]
+  har  <- preds[preds$model == "har", ]
+  ewma <- preds[preds$model == "ewma", ]
+  key <- function(p) paste(p$asset, p$date)
+  expect_equal(comb$pred_var,
+               (har$pred_var[match(key(comb), key(har))] + ewma$pred_var[match(key(comb), key(ewma))]) / 2)
+  expect_true(all(comb$resid_var == 0))
+  track <- live_track_record(out, forward_from = character(0))
+  expect_true(all(is.na(track$coverage80[track$model == "comb_har_ewma"])))
+  expect_equal(nrow(out), nrow(preds) + nrow(har))
+})
+
+test_that("every live combination is built from served models and has a start date", {
+  served <- vapply(LIVE_MODELS, `[[`, "", "name")
+  for (name in names(LIVE_COMBINATIONS)) {
+    expect_true(all(LIVE_COMBINATIONS[[name]] %in% served), info = name)
+    expect_true(name %in% names(LIVE_FORWARD_FROM), info = name)
+  }
+  preds <- add_live_combinations(predict_frozen(frozen, build_live_features(live_inputs)))
+  expect_true(all(names(LIVE_COMBINATIONS) %in% preds$model))
+})
+
+test_that("a frozen file saved before a model was added still predicts the others", {
+  old <- frozen
+  old$fitted$har_x <- NULL
+  preds <- predict_frozen(old, build_live_features(live_inputs))
+  expect_false("har_x" %in% preds$model)
+  expect_setequal(unique(preds$model), c("naive", "ewma", "har", "lasso_b2_iv", "rf_b2_iv"))
 })
 
 test_that("the 80% interval surrounds the forecast", {

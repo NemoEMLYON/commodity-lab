@@ -26,7 +26,7 @@ if (is.null(snapshot)) {
   message("Kept the previous forecasts, marked offline: ", path)
 } else {
   live_features <- build_live_features(snapshot$data)
-  preds   <- predict_frozen(frozen, live_features)
+  preds   <- add_live_combinations(predict_frozen(frozen, live_features))
   payload <- live_payload(snapshot, frozen, preds, live_features)
   path    <- write_site_json(payload, "live")
 
