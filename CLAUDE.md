@@ -228,6 +228,49 @@ implied vol same day).
   HAC_LAG = 5, baselines + lasso_b2_iv + rf_b2_iv (forest settings reused);
   then both restored to 21. Output `data/processed/robustness.rds`.
 
+## Post hoc extensions (pre-registered in S16, 2026-11-13, before any run)
+
+Everything below was decided AFTER seeing the 2017-2026 results. It is
+reported apart, labelled "post hoc", and never replaces the primary
+comparison (best ML vs HAR, pooled QLIKE; answer: HAR not beaten). The list
+is closed: nothing else is added before the results freeze (2026-12-13).
+Script: `extensions.R` (after pipeline.R; reads features.rds and
+predictions.rds, never rewrites them) -> `data/processed/extensions.rds`.
+
+- E1 (S16) Information or algorithm? Two unpenalised OLS models, same
+  walk-forward, embargo and Jensen correction as the others:
+  `har_x` = HAR-IV of the literature: har_d, har_w, har_m + the asset's
+  implied vol columns (IMPLIED_VOL_BY_ASSET); `ols_b2_iv` = OLS on exactly
+  the Lasso's B2 inputs (block_features("b2", asset)). Reported: QLIKE / HAR
+  per asset and pooled, DM vs HAR and vs lasso_b2_iv (lag 21), MZ, oil by
+  year. Reading rule, oil (the only asset where lasso_b2_iv beat HAR):
+  if DM(ols_b2_iv vs lasso_b2_iv) is not significant at 5%, the gain comes
+  from the information (OVX), not from the Lasso; if lasso_b2_iv is
+  significantly better, the Lasso's selection / shrinkage adds value.
+  Other assets: reported, no claim.
+  RESULT (S16): verdict for oil = information (DM ols_b2_iv vs Lasso -0.85).
+  Descriptive: OLS + implied vol beats HAR pooled (har_x 0.880, ols_b2_iv
+  0.862, DM -3.27) and the Lasso on 4 of 5 assets; gold har_x 0.757.
+- E2 (S17) Forecast combinations, fixed equal weights on variance
+  forecasts: HAR + EWMA, HAR + har_x, HAR + EWMA + lasso_b2_iv. The two
+  best on pooled QLIKE over 2017-2025 are frozen and added to the live job;
+  their live record starts the day they are added.
+- E3 (S18) Level calibration: Duan smearing (variance = exp(2 pred) x mean
+  of exp(2 x in-sample residual)) vs the lognormal correction; Lasso
+  lambda.min vs 1-SE. Kept for the extensions if pooled QLIKE of HAR improves.
+- E4 (S19) Intervals: 10% / 90% empirical quantiles of the out-of-sample
+  log-vol errors of PREVIOUS walk-forward years (at least 2 years), vs the
+  current lognormal interval; coverage 2019-2026.
+- E5 (S20) Model Confidence Set (Hansen, Lunde, Nason 2011), 90%, T_max
+  statistic, block bootstrap (blocks of 21 days, 1,000 draws), on QLIKE,
+  per asset and pooled, over naive, ewma, har, lasso_b2_iv, rf_b2_iv,
+  har_x, ols_b2_iv and the E2 combinations.
+- E6 (S21) Backtest uncertainty: block bootstrap (blocks of 63 days, 1,000
+  draws) of risk_rmse(model) - risk_rmse(har), 95% intervals; results
+  without CPER and with CPER trained from 2016.
+- E7 (S22, optional) HAR on Garman-Klass vols (`har_gk`); forest on the
+  residuals of HAR (`rf_har_resid`, B2 inputs).
+
 ## Website (decided in S8/S9)
 
 - **Static site** in `site/` (HTML, CSS, JS ES modules, no build step),

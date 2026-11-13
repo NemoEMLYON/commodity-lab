@@ -80,3 +80,66 @@ test_that("pooled and Lasso models never use targets unknown at the test start",
   expect_equal(again$pred_log_vol, base$pred_log_vol)
   expect_setequal(unique(base$asset), ASSETS)        # pooled: all assets predicted
 })
+
+
+# ---- Extension E1: plain OLS models -------------------------------------------
+
+test_that("OLS model recovers known coefficients", {
+  set.seed(16)
+  n <- 2000
+  train <- data.frame(asset = "oil", har_d = rnorm(n), har_w = rnorm(n), har_m = rnorm(n),
+                      log_ovx = rnorm(n), log_vix = rnorm(n))
+  train$target <- 0.1 + 0.2 * train$har_m + 0.5 * train$log_ovx + rnorm(n, 0, 0.1)
+
+  model  <- make_ols("har_x", function(a) c(HAR_COLUMNS, IMPLIED_VOL_BY_ASSET[[a]]))
+  fitted <- model$fit(train)
+  b <- coef(fitted$ols)
+  expect_equal(unname(b["log_ovx"]), 0.5, tolerance = 0.02)
+  expect_equal(unname(b["har_m"]), 0.2, tolerance = 0.02)
+  expect_equal(unname(b["log_vix"]), 0, tolerance = 0.02)
+  expect_equal(fitted$resid_var, 0.01, tolerance = 0.1)   # relative tolerance
+  expect_equal(model$predict(fitted, train[1:3, ]), as.numeric(fitted(fitted$ols)[1:3]))
+})
+
+test_that("har_x and ols_b2_iv use each asset's own columns", {
+  m <- extension_e1_models()
+  cols <- function(model, asset) {
+    n <- 50
+    train <- data.frame(asset = asset, matrix(rnorm(n * length(FULL_FEATURES)), n))
+    names(train)[-1] <- FULL_FEATURES
+    train$target <- rnorm(n)
+    model$fit(train)$features
+  }
+  expect_equal(cols(m[[1]], "oil"), c("har_d", "har_w", "har_m", "log_ovx", "log_vix"))
+  expect_equal(cols(m[[1]], "copper"), c("har_d", "har_w", "har_m", "log_vix"))
+  expect_equal(cols(m[[2]], "gold"), block_features("b2", "gold"))
+})
+
+test_that("OLS extensions never use targets unknown at the test start", {
+  features <- build_features(make_fake_raw())
+  base <- walk_forward(features, extension_e1_models(), test_years = 2015)
+
+  altered <- features
+  late <- altered$date > base$train_end[1]
+  altered$target[late] <- altered$target[late] + 1
+  again <- walk_forward(altered, extension_e1_models(), test_years = 2015)
+
+  expect_equal(again$pred_log_vol, base$pred_log_vol)
+  expect_setequal(unique(base$model), c("har_x", "ols_b2_iv"))
+})
+
+test_that("ols_coefficients refits on the same window as the walk-forward", {
+  features <- build_features(make_fake_raw())
+  model <- extension_e1_models()[[1]]
+  coefs <- ols_coefficients(features, model, "oil", 2014:2015)
+  pred  <- walk_forward(features, list(model), test_years = 2015)
+  pred  <- pred[pred$asset == "oil", ]
+
+  b <- coefs[coefs$test_year == 2015, ]
+  test <- model_rows(features)
+  test <- test[test$asset == "oil" & format(test$date, "%Y") == "2015", ]
+  x <- cbind(1, as.matrix(test[, b$term[-1]]))
+  expect_equal(as.numeric(x %*% b$estimate), pred$pred_log_vol)
+  expect_setequal(unique(coefs$test_year), 2014:2015)
+})
+

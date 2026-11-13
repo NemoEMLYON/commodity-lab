@@ -46,6 +46,7 @@ at the project root (see `.Renviron.example`; never commit `.Renviron`).
 renv::restore()             # install the pinned package versions
 source("pipeline.R")        # data, features, walk-forward, tests, backtest
 source("robustness.R")      # sensitivity, portfolio, 5-day horizon
+source("extensions.R")      # post hoc extensions (pre-registered, reported apart)
 source("export_site.R")     # JSON and CSV files for the website
 testthat::test_dir("tests") # unit and anti-leakage tests
 source("freeze_models.R")   # once a year: save the models used live
@@ -58,9 +59,10 @@ The simulator on the website is a JavaScript port of the R backtest:
 ## Structure
 
 ```
-R/              functions, one file per pipeline step (01_data ... 08_export)
+R/              functions, one file per step (01_data ... 10_extensions)
 pipeline.R      runs the main steps in order
 robustness.R    robustness checks
+extensions.R    post hoc extensions, pre-registered in CLAUDE.md
 export_site.R   writes site/data/ from the saved results
 freeze_models.R saves the models used live (models/, versioned)
 live.R          daily forecasts with the frozen models (site/data/live.json)

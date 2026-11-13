@@ -254,3 +254,57 @@ block_models <- function(rf_min_node_size) {
   }
   models
 }
+
+
+# ---- Post hoc extension E1: information or algorithm? (S16) -----------------
+#
+# Pre-registered in CLAUDE.md before any run. Plain OLS, no penalty, on
+# asset-specific columns. If OLS on the Lasso's own inputs does as well as
+# the Lasso, the oil gain comes from the information (OVX), not the Lasso.
+
+HAR_COLUMNS <- c("har_d", "har_w", "har_m")
+
+# OLS of the target on `features` (a vector of columns, or a function(asset)
+# returning one). reformulate() builds the formula "target ~ a + b + c" from
+# strings, like writing the formula text in statsmodels.
+make_ols <- function(name, features) {
+  force(features)   # evaluate now: R arguments are lazy (see make_rf)
+  list(
+    name    = name,
+    pooled  = FALSE,
+    fit     = function(train) {
+      cols <- resolve_features(features, train$asset[1])
+      ols  <- lm(reformulate(cols, response = "target"), data = train)
+      list(ols = ols, resid_var = mean(residuals(ols)^2), features = cols)
+    },
+    predict = function(fitted, test) as.numeric(predict(fitted$ols, newdata = test))
+  )
+}
+
+# har_x: HAR-IV of the literature (HAR + the asset's implied vol).
+# ols_b2_iv: exactly the inputs of lasso_b2_iv, without the penalty.
+extension_e1_models <- function() {
+  list(
+    make_ols("har_x", function(asset) c(HAR_COLUMNS, IMPLIED_VOL_BY_ASSET[[asset]])),
+    make_ols("ols_b2_iv", function(asset) block_features("b2", asset))
+  )
+}
+
+# Coefficients of an OLS extension model for one asset, refitted on each
+# walk-forward training window (same cutoff rule): how stable is the
+# implied-vol coefficient from year to year?
+ols_coefficients <- function(features, model, asset, test_years) {
+  data     <- model_rows(features)
+  calendar <- sort(unique(features$date))
+  rows <- lapply(test_years, function(year) {
+    test <- data[data$asset == asset & format(data$date, "%Y") == as.character(year), ]
+    if (nrow(test) == 0) return(NULL)
+    cutoff <- training_cutoff(calendar, min(test$date))
+    train  <- data[data$asset == asset & data$date <= cutoff, ]
+    fitted <- model$fit(train)
+    data.frame(asset = asset, model = model$name, test_year = year,
+               term = names(coef(fitted$ols)), estimate = unname(coef(fitted$ols)))
+  })
+  do.call(rbind, rows)
+}
+

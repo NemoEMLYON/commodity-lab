@@ -2,6 +2,62 @@
 
 Newest session first. Each entry: done / next / decisions / open issues.
 
+## S16 — 2026-11-13 — Pre-registration + E1 "information or algorithm?"
+
+**Done**
+- Planning S16-S25 agreed (Claude doc "Commodity Lab — planning des
+  sessions S16-S25"): results frozen 2026-12-13, oral 2026-12-31.
+- Pre-registration written in CLAUDE.md BEFORE any run: extensions E1-E7,
+  their models, metrics and reading rules, labelled post hoc, list closed.
+- `R/03_models.R`: `make_ols()` (plain OLS on asset-specific columns),
+  `extension_e1_models()` = `har_x` (HAR + own implied vol, the HAR-IV of
+  the literature) and `ols_b2_iv` (OLS on exactly the Lasso's B2 inputs),
+  `ols_coefficients()` (refit per walk-forward window).
+- `R/10_extensions.R` + `extensions.R` (runs after pipeline.R, never
+  rewrites predictions.rds) -> `data/processed/extensions.rds`: QLIKE /
+  HAR, DM vs HAR and vs lasso_b2_iv, MZ, oil by year, har_x coefficients
+  (oil, gold), verdict by the pre-registered rule.
+- Tests: 4 in test_ml.R (coefficients recovered, asset columns, no peek,
+  coefficients = walk-forward window), new test_extensions.R (verdict rule,
+  end-to-end on synthetic data, same rows as the saved models). Whole
+  suite in the cloud: 77 tests, 185 checks, 0 failures. Dry run of
+  extensions.R on synthetic data: runs end to end.
+
+**E1 results on real data (post hoc, 2017-2026; PC: 185 checks pass)**
+
+  | asset | lasso_b2_iv | har_x | ols_b2_iv | DM har_x vs HAR | DM ols_b2_iv vs Lasso |
+  |---|---|---|---|---|---|
+  | all | 1.049 | 0.880 | 0.862 | -3.27 | -4.92 |
+  | oil | 0.801 | 0.767 | 0.744 | -2.31 | -0.85 (p 0.39) |
+  | gold | 1.071 | 0.757 | 0.713 | -3.56 | -3.12 |
+  | copper | 1.096 | 0.982 | 0.959 | -0.47 | -2.66 |
+  | natgas | 1.239 | 0.955 | 0.967 | -1.02 | -3.40 |
+  | corn | 1.216 | 1.060 | 1.056 | +2.93 | -2.33 |
+
+  (QLIKE / HAR; DM < -1.96 = the first model significantly better.)
+- Pre-registered verdict, oil: **information**. OLS on the Lasso's own
+  inputs is not significantly different from the Lasso (DM -0.85): the
+  gain comes from OVX, not from the algorithm.
+- Beyond the rule (descriptive, no pre-registered claim): plain OLS with
+  implied vol beats HAR pooled by 12-14% (DM -3.27, p ~ 0.001) and beats
+  the Lasso on every asset but oil. Gold is the big change: har_x 0.757
+  (DM -3.56) where the Lasso was at 1.071: the Lasso's 1-SE shrinkage threw
+  GVZ's information away (MZ b = 1.50 for the Lasso, 1.03 for har_x).
+  VIX alone does not help copper or natgas and hurts corn (DM +2.93).
+- har_x coefficients are stable: oil OVX 0.78-1.02 with HAR terms near 0
+  (next month's oil vol is mostly OVX); gold GVZ 0.67-0.98.
+- Oil calibration: OLS forecasts are too jumpy (MZ b 0.73-0.81, rejected),
+  the Lasso is well calibrated (b 0.99): shrinkage helps the slope on oil
+  and costs the level elsewhere. To revisit in E3 (lambda.min vs 1-SE).
+- Caution for the oral: post hoc, about 65 earlier tests; pooled p ~ 0.001
+  is just above a strict Bonferroni threshold (0.0008). The MCS (E5) gives
+  the joint answer. The primary result is unchanged: no ML model beats HAR.
+
+**Next**
+- S17: forecast combinations (E2, includes HAR + har_x as pre-registered).
+- Decide with the student: add har_x to the live job as a forward test
+  (new data, so not snooping; its record would start the day it is added).
+
 ## S15 — 2026-11-13 — Site polish: Didot, active nav, colours, simulator hover
 
 **Done** (student's list)
