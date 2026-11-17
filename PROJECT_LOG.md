@@ -2,6 +2,23 @@
 
 Newest session first. Each entry: done / next / decisions / open issues.
 
+## S17b — 2026-11-17 — Mid-project pitch (18 Nov) and a site fix
+
+**Done**
+- Pitch: 3-slide deck (Claude Slides, English), prep doc and site tour
+  (Claude Docs, French), "Pitch coach" trainer page. Script ~510 words,
+  about 3:40.
+- Site, chapter 04 "Where the edge is": the last column was labelled
+  "+ stocks, weather" although gold, copper and corn only get the dollar
+  in block B4 (FUNDAMENTALS_BY_ASSET). Column renamed "+ fundamentals,
+  dollar"; every cell now says what its step adds for that commodity
+  (OVX + VIX, GVZ + VIX, VIX; GPR; crude stocks + $, gas stocks + weather
+  + $, dollar only), from `BLOCK_INPUTS` in story.js; one sentence in the
+  text and the caption. Checked at 1440 px and 390 px, no page errors.
+
+**Next**
+- S18: level calibration (E3).
+
 ## S17 — 2026-11-13 — E2 combinations + live forward test
 
 **Done (code, tested offline)**

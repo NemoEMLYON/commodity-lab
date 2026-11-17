@@ -113,8 +113,18 @@
     { key: "B1_own_returns",  label: "Own returns",       suffix: "_base" },
     { key: "B2_implied_vol",  label: "+ implied vol",     suffix: "_b2_iv" },
     { key: "B3_gpr",          label: "+ geopolitics",     suffix: "_b3_gpr" },
-    { key: "B4_fundamentals", label: "+ stocks, weather", suffix: "_b4_fund" }
+    { key: "B4_fundamentals", label: "+ fundamentals, dollar", suffix: "_b4_fund" }
   ];
+
+  // What each block really adds, commodity by commodity (R/03_models.R:
+  // IMPLIED_VOL_BY_ASSET, FUNDAMENTALS_BY_ASSET, DOLLAR_FEATURES). Each
+  // commodity only gets the inputs that make economic sense for it.
+  const BLOCK_INPUTS = {
+    B2_implied_vol: { oil: "OVX + VIX", gold: "GVZ + VIX", copper: "VIX", natgas: "VIX", corn: "VIX" },
+    B3_gpr: { oil: "GPR", gold: "GPR", copper: "GPR", natgas: "GPR", corn: "GPR" },
+    B4_fundamentals: { oil: "crude stocks, $", natgas: "gas stocks, weather, $",
+                       gold: "dollar only", copper: "dollar only", corn: "dollar only" }
+  };
 
   function heatmap(el, data, h, family) {
     const table = data.results[`blocks_${family}`];
@@ -143,8 +153,10 @@
         if (test && test.p_value < 0.05) mark = v < 1 ? `<span class="sig" title="significantly better">▲</span>`
                                                        : `<span class="sig" title="significantly worse">▼</span>`;
         const p = test ? `, Diebold-Mariano p = ${test.p_value.toFixed(3)}` : "";
+        const adds = BLOCK_INPUTS[b.key] && BLOCK_INPUTS[b.key][id];
         html += `<div class="hm-cell" role="cell" style="background:${fill(v)};color:${ink(v)}" ` +
-          `aria-label="${name}, ${b.label}: ${v.toFixed(2)} times HAR's loss${p}">${v.toFixed(2)}${mark}</div>`;
+          `aria-label="${name}, ${b.label}${adds ? ` (adds ${adds})` : ""}: ${v.toFixed(2)} times HAR's loss${p}">` +
+          `${v.toFixed(2)}${mark}${adds ? `<small aria-hidden="true">${adds}</small>` : ""}</div>`;
       });
     });
     el.innerHTML = html;

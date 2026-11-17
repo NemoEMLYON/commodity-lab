@@ -227,6 +227,9 @@
             lower loss than HAR, significant at the 1% level, and better in every test
             year except 2024.
             Inventories and weather add nothing prices did not already know.</p>
+          <p>Each commodity only gets the inputs that make economic sense for it: its own
+            options index where one exists, inventories for oil and gas, weather for gas.
+            The small text in each cell says what that step adds.</p>
           <div class="toggle" role="group" aria-label="Model family">
             <button type="button" class="toggle-btn" data-family="lasso" aria-pressed="true">Lasso</button>
             <button type="button" class="toggle-btn" data-family="rf" aria-pressed="false">Random forest</button>
@@ -237,7 +240,8 @@
           <figcaption><span class="mark-better" aria-hidden="true">▲</span> significantly better than HAR,
             <span class="mark-worse" aria-hidden="true">▼</span> significantly worse
             (Diebold-Mariano test with Newey-West errors, 5% level, about 65 comparisons in
-            total). Values below 1.00 mean a lower loss than HAR.</figcaption>
+            total). Values below 1.00 mean a lower loss than HAR. Each column keeps the inputs
+            on its left; GPR = geopolitical risk index, $ = US dollar.</figcaption>
         </figure>
       </div>
     </article>

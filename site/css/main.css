@@ -515,6 +515,8 @@ a { color: inherit; }
   transition: background 0.4s;
 }
 .hm-cell .sig { position: absolute; top: 3px; right: 6px; font-size: 0.8rem; color: inherit; }
+/* What the block adds for that commodity (story.js BLOCK_INPUTS) */
+.hm-cell small { display: block; margin-top: 0.2rem; font-size: 0.62rem; line-height: 1.25; opacity: 0.78; letter-spacing: 0.02em; }
 .mark-better { color: var(--champagne); }
 .mark-worse { color: var(--ash); }
 
